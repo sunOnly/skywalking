@@ -43,6 +43,10 @@ public class DefaultScopeDefine {
      * @since 9.0.0
      */
     public static final int UNKNOWN = 0;
+    /**
+     * @since Deprecated from 9.0.0
+     */
+    @Deprecated
     public static final int ALL = 0;
     public static final int SERVICE = 1;
     public static final int SERVICE_INSTANCE = 2;
@@ -92,6 +96,11 @@ public class DefaultScopeDefine {
 
     public static final int SERVICE_INSTANCE_JVM_CLASS = 44;
 
+    public static final int PROCESS = 45;
+    public static final int EBPF_PROFILING_TASK = 46;
+    public static final int EBPF_PROFILING_SCHEDULE = 47;
+    public static final int EBPF_PROFILING_DATA = 48;
+
     /**
      * Catalog of scope, the metrics processor could use this to group all generated metrics by oal rt.
      */
@@ -101,6 +110,7 @@ public class DefaultScopeDefine {
     public static final String SERVICE_RELATION_CATALOG_NAME = "SERVICE_RELATION";
     public static final String SERVICE_INSTANCE_RELATION_CATALOG_NAME = "SERVICE_INSTANCE_RELATION";
     public static final String ENDPOINT_RELATION_CATALOG_NAME = "ENDPOINT_RELATION";
+    public static final String PROCESS_CATALOG_NAME = "PROCESS";
 
     private static final Map<Integer, Boolean> SERVICE_CATALOG = new HashMap<>();
     private static final Map<Integer, Boolean> SERVICE_INSTANCE_CATALOG = new HashMap<>();
@@ -108,6 +118,7 @@ public class DefaultScopeDefine {
     private static final Map<Integer, Boolean> SERVICE_RELATION_CATALOG = new HashMap<>();
     private static final Map<Integer, Boolean> SERVICE_INSTANCE_RELATION_CATALOG = new HashMap<>();
     private static final Map<Integer, Boolean> ENDPOINT_RELATION_CATALOG = new HashMap<>();
+    private static final Map<Integer, Boolean> PROCESS_CATALOG = new HashMap<>();
 
     @Setter
     private static boolean ACTIVE_EXTRA_MODEL_COLUMNS = false;
@@ -209,6 +220,9 @@ public class DefaultScopeDefine {
             case ENDPOINT_RELATION_CATALOG_NAME:
                 ENDPOINT_RELATION_CATALOG.put(id, Boolean.TRUE);
                 break;
+            case PROCESS_CATALOG_NAME:
+                PROCESS_CATALOG.put(id, Boolean.TRUE);
+                break;
         }
     }
 
@@ -250,7 +264,7 @@ public class DefaultScopeDefine {
     }
 
     /**
-     * Check whether current service belongs service catalog
+     * Check whether the given scope ID belongs service catalog
      *
      * @param scopeId represents an existing scope id.
      * @return true is current scope set {@link ScopeDeclaration#catalog()} == {@link #SERVICE_CATALOG_NAME}
@@ -260,7 +274,7 @@ public class DefaultScopeDefine {
     }
 
     /**
-     * Check whether current service belongs service instance catalog
+     * Check whether the given scope ID belongs service instance catalog
      *
      * @param scopeId represents an existing scope id.
      * @return true is current scope set {@link ScopeDeclaration#catalog()} == {@link #SERVICE_INSTANCE_CATALOG_NAME}
@@ -270,7 +284,7 @@ public class DefaultScopeDefine {
     }
 
     /**
-     * Check whether current service belongs endpoint catalog
+     * Check whether the given scope ID belongs endpoint catalog
      *
      * @param scopeId represents an existing scope id.
      * @return true is current scope set {@link ScopeDeclaration#catalog()} == {@link #ENDPOINT_CATALOG_NAME}
@@ -280,7 +294,7 @@ public class DefaultScopeDefine {
     }
 
     /**
-     * Check whether current service belongs service relation catalog
+     * Check whether the given scope ID belongs service relation catalog
      *
      * @param scopeId represents an existing scope id.
      * @return true is current scope set {@link ScopeDeclaration#catalog()} == {@link #SERVICE_RELATION_CATALOG_NAME}
@@ -290,7 +304,7 @@ public class DefaultScopeDefine {
     }
 
     /**
-     * Check whether current service belongs service instance relation catalog
+     * Check whether the given scope ID belongs service instance relation catalog
      *
      * @param scopeId represents an existing scope id.
      * @return true is current scope set {@link ScopeDeclaration#catalog()} == {@link #SERVICE_INSTANCE_RELATION_CATALOG_NAME}
@@ -300,13 +314,23 @@ public class DefaultScopeDefine {
     }
 
     /**
-     * Check whether current service belongs endpoint relation catalog
+     * Check whether the given scope ID belongs endpoint relation catalog
      *
      * @param scopeId represents an existing scope id.
      * @return true is current scope set {@link ScopeDeclaration#catalog()} == {@link #ENDPOINT_RELATION_CATALOG_NAME}
      */
     public static boolean inEndpointRelationCatalog(int scopeId) {
         return ENDPOINT_RELATION_CATALOG.containsKey(scopeId);
+    }
+
+    /**
+     * Check whether the given scope ID belongs process catalog
+     *
+     * @param scopeId represents an existing scope id.
+     * @return true is current scope set {@link ScopeDeclaration#catalog()} == {@link #PROCESS_CATALOG_NAME}
+     */
+    public static boolean inProcessCatalog(int scopeId) {
+        return PROCESS_CATALOG.containsKey(scopeId);
     }
 
     /**
@@ -333,6 +357,9 @@ public class DefaultScopeDefine {
         }
         if (inEndpointRelationCatalog(scope)) {
             return ENDPOINT_RELATION_CATALOG_NAME;
+        }
+        if (inProcessCatalog(scope)) {
+            return PROCESS_CATALOG_NAME;
         }
         return "ALL";
     }

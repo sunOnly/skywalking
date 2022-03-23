@@ -10,7 +10,6 @@ core|default|role|Option values: `Mixed/Receiver/Aggregator`. **Receiver** mode 
 | - | - | restMinThreads| Minimum thread number of RESTful services. | SW_CORE_REST_JETTY_MIN_THREADS|1|
 | - | - | restMaxThreads| Maximum thread number of RESTful services. | SW_CORE_REST_JETTY_MAX_THREADS|200|
 | - | - | restIdleTimeOut| Connector idle timeout of RESTful services (in milliseconds). | SW_CORE_REST_JETTY_IDLE_TIMEOUT|30000|
-| - | - | restAcceptorPriorityDelta| Thread priority delta to give to acceptor threads of RESTful services. | SW_CORE_REST_JETTY_DELTA|0|
 | - | - | restAcceptQueueSize| ServerSocketChannel Backlog of RESTful services. | SW_CORE_REST_JETTY_QUEUE_SIZE|0|
 | - | - | httpMaxRequestHeaderSize| Maximum request header size accepted. | SW_CORE_HTTP_MAX_REQUEST_HEADER_SIZE|8192|
 | - | - | gRPCHost| Binding IP of gRPC services, including gRPC data report and internal communication among OAP nodes. |SW_CORE_GRPC_HOST|0.0.0.0|
@@ -47,6 +46,9 @@ core|default|role|Option values: `Mixed/Receiver/Aggregator`. **Receiver** mode 
 | - | - | maxSizeOfAnalyzeProfileSnapshot| The maximum number of snapshots analyzed by the OAP. | - | 12000 |
 | - | - | prepareThreads| The number of threads used to prepare metrics data to the storage. | SW_CORE_PREPARE_THREADS | 2 |
 | - | - | enableEndpointNameGroupingByOpenapi | Automatically groups endpoints by the given OpenAPI definitions. | SW_CORE_ENABLE_ENDPOINT_NAME_GROUPING_BY_OPAENAPI | true |
+| - | - | maxDurationOfAnalyzeEBPFProfiling| The maximum duration(in minute) of analyze the eBPF profiling data. | - | 10 |
+| - | - | maxDurationOfQueryEBPFProfilingData| The maximum duration(in second) of query the eBPF profiling data from database. | - | 30 |
+| - | - | maxThreadCountOfQueryEBPFProfilingData| The maximum thread count of query the eBPF profiling data from database. | - | System CPU core size |
 |cluster|standalone| - | Standalone is not suitable for running on a single node running. No configuration available. | - | - |
 | - | zookeeper|namespace| The namespace, represented by root path, isolates the configurations in Zookeeper.|SW_NAMESPACE| `/`, root path|
 | - | - | hostPort| Hosts and ports of Zookeeper Cluster. |SW_CLUSTER_ZK_HOST_PORT| localhost:2181|
@@ -86,7 +88,7 @@ core|default|role|Option values: `Mixed/Receiver/Aggregator`. **Receiver** mode 
 | - | - | namespace | Prefix of indexes created and used by SkyWalking. | SW_NAMESPACE | - |
 | - | - | clusterNodes | ElasticSearch cluster nodes for client connection.| SW_STORAGE_ES_CLUSTER_NODES |localhost|
 | - | - | protocol | HTTP or HTTPs. | SW_STORAGE_ES_HTTP_PROTOCOL | HTTP|
-| - | - | connectTimeout | Connect timeout of ElasticSearch client (in milliseconds). | SW_STORAGE_ES_CONNECT_TIMEOUT | 500|
+| - | - | connectTimeout | Connect timeout of ElasticSearch client (in milliseconds). | SW_STORAGE_ES_CONNECT_TIMEOUT | 3000|
 | - | - | socketTimeout | Socket timeout of ElasticSearch client (in milliseconds). | SW_STORAGE_ES_SOCKET_TIMEOUT | 30000|
 | - | - | responseTimeout | Response timeout of ElasticSearch client (in milliseconds), `0` disables the timeout. | SW_STORAGE_ES_RESPONSE_TIMEOUT | 1500 |
 | - | - | numHttpClientThread | The number of threads for the underlying HTTP client to perform socket I/O. If the value is <= 0, the number of available processors will be used. | SW_STORAGE_ES_NUM_HTTP_CLIENT_THREAD | 0 |
@@ -106,7 +108,8 @@ core|default|role|Option values: `Mixed/Receiver/Aggregator`. **Receiver** mode 
 | - | - | flushInterval| Period of flush (in seconds). Does not matter whether `bulkActions` is reached or not. INT(flushInterval * 2/3) is used for index refresh period. | SW_STORAGE_ES_FLUSH_INTERVAL | 15 (index refresh period = 10)|
 | - | - | concurrentRequests| The number of concurrent requests allowed to be executed. | SW_STORAGE_ES_CONCURRENT_REQUESTS| 2 |
 | - | - | resultWindowMaxSize | The maximum size of dataset when the OAP loads cache, such as network aliases. | SW_STORAGE_ES_QUERY_MAX_WINDOW_SIZE | 10000|
-| - | - | metadataQueryMaxSize | The maximum size of metadata per query. | SW_STORAGE_ES_QUERY_MAX_SIZE | 5000 |
+| - | - | metadataQueryMaxSize | The maximum size of metadata per query. | SW_STORAGE_ES_QUERY_MAX_SIZE | 10000 |
+| - | - | scrollingBatchSize | The batch size of metadata per iteration when `metadataQueryMaxSize` or `resultWindowMaxSize` is too large to be retrieved in a single query. | SW_STORAGE_ES_SCROLLING_BATCH_SIZE | 5000 |
 | - | - | segmentQueryMaxSize | The maximum size of trace segments per query. | SW_STORAGE_ES_QUERY_SEGMENT_SIZE | 200|
 | - | - | profileTaskQueryMaxSize | The maximum size of profile task per query. | SW_STORAGE_ES_QUERY_PROFILE_TASK_SIZE | 200|
 | - | - | advanced | All settings of ElasticSearch index creation. The value should be in JSON format. | SW_STORAGE_ES_ADVANCED | - |
@@ -114,7 +117,7 @@ core|default|role|Option values: `Mixed/Receiver/Aggregator`. **Receiver** mode 
 | - | - | driver | H2 JDBC driver. | SW_STORAGE_H2_DRIVER | org.h2.jdbcx.JdbcDataSource|
 | - | - | url | H2 connection URL. Defaults to H2 memory mode. | SW_STORAGE_H2_URL | jdbc:h2:mem:skywalking-oap-db |
 | - | - | user | Username of H2 database. | SW_STORAGE_H2_USER | sa |
-| - | - | password | Password of H2 database. | - | - | 
+| - | - | password | Password of H2 database. | - | - |
 | - | - | metadataQueryMaxSize | The maximum size of metadata per query. | SW_STORAGE_H2_QUERY_MAX_SIZE | 5000 |
 | - | - | maxSizeOfArrayColumn | Some entities (e.g. trace segments) include the logic column with multiple values. In H2, we use multiple physical columns to host the values: e.g. change column_a with values [1,2,3,4,5] to `column_a_0 = 1, column_a_1 = 2, column_a_2 = 3 , column_a_3 = 4, column_a_4 = 5`. | SW_STORAGE_MAX_SIZE_OF_ARRAY_COLUMN | 20 |
 | - | - | numOfSearchableValuesPerTag | In a trace segment, this includes multiple spans with multiple tags. Different spans may have the same tag key, e.g. multiple HTTP exit spans all have their own `http.method` tags. This configuration sets the limit on the maximum number of values for the same tag key. | SW_STORAGE_NUM_OF_SEARCHABLE_VALUES_PER_TAG | 2 |
@@ -166,7 +169,6 @@ core|default|role|Option values: `Mixed/Receiver/Aggregator`. **Receiver** mode 
 | - | - | restMinThreads| Minimum thread number of RESTful services. | SW_RECEIVER_SHARING_JETTY_MIN_THREADS|1|
 | - | - | restMaxThreads| Maximum thread number of RESTful services. | SW_RECEIVER_SHARING_JETTY_MAX_THREADS|200|
 | - | - | restIdleTimeOut| Connector idle timeout of RESTful services (in milliseconds). | SW_RECEIVER_SHARING_JETTY_IDLE_TIMEOUT|30000|
-| - | - | restAcceptorPriorityDelta| Thread priority delta to give to acceptor threads of RESTful services. | SW_RECEIVER_SHARING_JETTY_DELTA|0|
 | - | - | restAcceptQueueSize| ServerSocketChannel backlog of RESTful services. | SW_RECEIVER_SHARING_JETTY_QUEUE_SIZE|0|
 | - | - | httpMaxRequestHeaderSize| Maximum request header size accepted. | SW_RECEIVER_SHARING_HTTP_MAX_REQUEST_HEADER_SIZE|8192|
 | - | - | gRPCHost| Binding IP of gRPC services. Services include gRPC data report and internal communication among OAP nodes. | SW_RECEIVER_GRPC_HOST | 0.0.0.0. Not Activated |
@@ -200,13 +202,13 @@ core|default|role|Option values: `Mixed/Receiver/Aggregator`. **Receiver** mode 
 | receiver-otel | default | A receiver for analyzing metrics data from OpenTelemetry. | - | - |
 | - | - | enabledHandlers| Enabled handlers for otel. | SW_OTEL_RECEIVER_ENABLED_HANDLERS | - |
 | - | - | enabledOcRules| Enabled metric rules for OC handler. | SW_OTEL_RECEIVER_ENABLED_OC_RULES | - |
-| receiver_zipkin |default|  A receiver for Zipkin traces. | - | - |
+| receiver-zipkin |default|  A receiver for Zipkin traces. | - | - |
 | - | - | restHost| Binding IP of RESTful services. |SW_RECEIVER_ZIPKIN_HOST|0.0.0.0|
 | - | - | restPort | Binding port of RESTful services. | SW_RECEIVER_ZIPKIN_PORT|9411|
 | - | - | restContextPath| Web context path of RESTful services. | SW_RECEIVER_ZIPKIN_CONTEXT_PATH|/|
 | prometheus-fetcher | default | Prometheus fetcher reads metrics from Prometheus endpoint, and transfer the metrics into SkyWalking native format for the MAL engine. | - | - |
 | - | - | enabledRules | Enabled rules. | SW_PROMETHEUS_FETCHER_ENABLED_RULES | self |
-| - | - | maxConvertWorker | The maximize meter convert worker. | SW_PROMETHEUS_FETCHER_NUM_CONVERT_WORKER | -1(by default, half the number of CPU core(s)) |   
+| - | - | maxConvertWorker | The maximize meter convert worker. | SW_PROMETHEUS_FETCHER_NUM_CONVERT_WORKER | -1(by default, half the number of CPU core(s)) |
 | kafka-fetcher | default | Read SkyWalking's native metrics/logs/traces through Kafka server. | - | - |
 | - | - | bootstrapServers | A list of host/port pairs to use for establishing the initial connection to the Kafka cluster. | SW_KAFKA_FETCHER_SERVERS | localhost:9092 |
 | - | - | namespace | Namespace aims to isolate multi OAP cluster when using the same Kafka cluster. If you set a namespace for Kafka fetcher, OAP will add a prefix to topic name. You should also set namespace in `agent.config`. The property is named `plugin.kafka.namespace`. | SW_NAMESPACE | - |
@@ -230,8 +232,8 @@ core|default|role|Option values: `Mixed/Receiver/Aggregator`. **Receiver** mode 
 | receiver-browser | default | gRPC services that accept browser performance data and error log. | - | - | - |
 | - | - | sampleRate | Sampling rate for receiving trace. Precise to 1/10000. 10000 means sampling rate of 100% by default. | SW_RECEIVER_BROWSER_SAMPLE_RATE | 10000 |
 | query | graphql | - | GraphQL query implementation. | - |
-| - | - | path | Root path of GraphQL query and mutation. | SW_QUERY_GRAPHQL_PATH | /graphql|
 | - | - | enableLogTestTool | Enable the log testing API to test the LAL. **NOTE**: This API evaluates untrusted code on the OAP server. A malicious script can do significant damage (steal keys and secrets, remove files and directories, install malware, etc). As such, please enable this API only when you completely trust your users. | SW_QUERY_GRAPHQL_ENABLE_LOG_TEST_TOOL | false |
+| - | - | maxQueryComplexity | Maximum complexity allowed for the GraphQL query that can be used to abort a query if the total number of data fields queried exceeds the defined threshold. | SW_QUERY_MAX_QUERY_COMPLEXITY | 100 |
 | alarm | default | - | Read [alarm doc](backend-alarm.md) for more details. | - |
 | telemetry | - | - | Read [telemetry doc](backend-telemetry.md) for more details. | - |
 | - | none| - | No op implementation. | - |
@@ -242,7 +244,7 @@ core|default|role|Option values: `Mixed/Receiver/Aggregator`. **Receiver** mode 
 | - | - | port | DCS server binding port. | SW_DCS_SERVER_PORT | 80 |
 | - | - | clusterName | Cluster name when reading the latest configuration from DSC server. | SW_DCS_CLUSTER_NAME | SkyWalking|
 | - | - | period | The period of reading data from DSC server by the OAP (in seconds). | SW_DCS_PERIOD | 20 |
-| - | apollo| apolloMeta| `apollo.meta` in Apollo. | SW_CONFIG_APOLLO | http://localhost:8080 | 
+| - | apollo| apolloMeta| `apollo.meta` in Apollo. | SW_CONFIG_APOLLO | http://localhost:8080 |
 | - | - | apolloCluster | `apollo.cluster` in Apollo. | SW_CONFIG_APOLLO_CLUSTER | default|
 | - | - | apolloEnv | `env` in Apollo. | SW_CONFIG_APOLLO_ENV | - |
 | - | - | appId | `app.id` in Apollo. | SW_CONFIG_APOLLO_APP_ID | skywalking |
@@ -252,7 +254,7 @@ core|default|role|Option values: `Mixed/Receiver/Aggregator`. **Receiver** mode 
 | - | - | baseSleepTimeMs|The period of Zookeeper client between two retries (in milliseconds). |SW_CONFIG_ZK_BASE_SLEEP_TIME_MS|1000|
 | - | - | maxRetries| The maximum retry time. |SW_CONFIG_ZK_MAX_RETRIES|3|
 | - | - | period | The period of data sync (in seconds). | SW_CONFIG_ZK_PERIOD | 60 |
-| - | etcd| endpoints | Hosts and ports for etcd cluster (separated by commas if multiple). | SW_CONFIG_ETCD_ENDPOINTS | http://localhost:2379 | 
+| - | etcd| endpoints | Hosts and ports for etcd cluster (separated by commas if multiple). | SW_CONFIG_ETCD_ENDPOINTS | http://localhost:2379 |
 | - | - | namespace | Namespace for SkyWalking cluster. |SW_CONFIG_ETCD_NAMESPACE | /skywalking |
 | - | - | authentication | Indicates whether there is authentication. | SW_CONFIG_ETCD_AUTHENTICATION | false |
 | - | - | user | Etcd auth username. | SW_CONFIG_ETCD_USER | |

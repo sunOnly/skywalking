@@ -7,7 +7,10 @@ antlr4-runtime-4.9.2.jar
 aopalliance-1.0.jar
 apollo-client-1.8.0.jar
 apollo-core-1.8.0.jar
-armeria-1.13.4.jar
+armeria-1.14.1.jar
+armeria-graphql-1.14.1.jar
+armeria-graphql-protocol-1.14.1.jar
+armeria-protobuf-1.14.1.jar
 audience-annotations-0.5.0.jar
 bcpkix-jdk15on-1.69.jar
 bcprov-ext-jdk15on-1.69.jar
@@ -76,18 +79,10 @@ jackson-module-kotlin-2.13.1.jar
 java-dataloader-3.1.0.jar
 javassist-3.25.0-GA.jar
 javax.inject-1.jar
-javax.servlet-api-3.1.0.jar
 jcl-over-slf4j-1.7.30.jar
 jetcd-common-0.5.3.jar
 jetcd-core-0.5.3.jar
 jetcd-resolver-0.5.3.jar
-jetty-http-9.4.40.v20210413.jar
-jetty-io-9.4.40.v20210413.jar
-jetty-security-9.4.40.v20210413.jar
-jetty-server-9.4.40.v20210413.jar
-jetty-servlet-9.4.40.v20210413.jar
-jetty-util-9.4.40.v20210413.jar
-jetty-util-ajax-9.4.40.v20210413.jar
 joda-time-2.10.5.jar
 jose4j-0.7.9.jar
 jsr305-3.0.2.jar
@@ -109,7 +104,7 @@ log4j-over-slf4j-1.7.30.jar
 log4j-slf4j-impl-2.17.1.jar
 logging-interceptor-3.13.1.jar
 lz4-java-1.6.0.jar
-micrometer-core-1.7.6.jar
+micrometer-core-1.8.2.jar
 moshi-1.5.0.jar
 msgpack-core-0.8.16.jar
 mvel2-2.4.8.Final.jar
@@ -129,6 +124,7 @@ netty-handler-proxy-4.1.68.Final.jar
 netty-resolver-4.1.68.Final.jar
 netty-resolver-dns-4.1.68.Final.jar
 netty-resolver-dns-native-macos-4.1.68.Final-osx-x86_64.jar
+netty-resolver-dns-native-macos-4.1.68.Final-osx-aarch_64.jar
 netty-tcnative-boringssl-static-2.0.43.Final.jar
 netty-transport-4.1.68.Final.jar
 netty-transport-native-epoll-4.1.68.Final.jar
