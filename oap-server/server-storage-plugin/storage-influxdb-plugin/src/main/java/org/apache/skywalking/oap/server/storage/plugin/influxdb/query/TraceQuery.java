@@ -45,7 +45,6 @@ import org.influxdb.querybuilder.SelectQueryImpl;
 import org.influxdb.querybuilder.WhereNested;
 import org.influxdb.querybuilder.WhereQueryImpl;
 import org.influxdb.querybuilder.clauses.Clause;
-
 import static org.influxdb.querybuilder.BuiltQuery.QueryBuilder.contains;
 import static org.influxdb.querybuilder.BuiltQuery.QueryBuilder.eq;
 import static org.influxdb.querybuilder.BuiltQuery.QueryBuilder.gte;
@@ -121,6 +120,7 @@ public class TraceQuery implements ITraceQueryDAO {
             case SUCCESS:
                 recallQuery.and(eq(SegmentRecord.IS_ERROR, BooleanUtils.FALSE));
                 break;
+            default:
         }
         if (CollectionUtils.isNotEmpty(tags)) {
             WhereNested<WhereQueryImpl<SelectQueryImpl>> nested = recallQuery.andNested();

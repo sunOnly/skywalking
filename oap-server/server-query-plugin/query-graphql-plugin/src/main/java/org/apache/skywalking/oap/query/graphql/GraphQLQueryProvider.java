@@ -18,9 +18,11 @@
 
 package org.apache.skywalking.oap.query.graphql;
 
+import com.linecorp.armeria.common.HttpMethod;
 import graphql.kickstart.tools.SchemaParser;
 import graphql.kickstart.tools.SchemaParserBuilder;
 import graphql.scalars.ExtendedScalars;
+import java.util.Collections;
 import org.apache.skywalking.oap.query.graphql.resolver.AggregationQuery;
 import org.apache.skywalking.oap.query.graphql.resolver.AlarmQuery;
 import org.apache.skywalking.oap.query.graphql.resolver.BrowserLogQuery;
@@ -109,7 +111,7 @@ public class GraphQLQueryProvider extends ModuleProvider {
                      .file("query-protocol/profile.graphqls")
                      .resolvers(new ProfileQuery(getManager()), new ProfileMutation(getManager()))
                      .file("query-protocol/ui-configuration.graphqls")
-                     .resolvers(new UIConfigurationManagement(getManager()))
+                     .resolvers(new UIConfigurationManagement(getManager(), config))
                      .file("query-protocol/browser-log.graphqls")
                      .resolvers(new BrowserLogQuery(getManager()))
                      .file("query-protocol/event.graphqls")
@@ -127,7 +129,9 @@ public class GraphQLQueryProvider extends ModuleProvider {
                                                   .provider()
                                                   .getService(HTTPHandlerRegister.class);
         service.addHandler(
-            new GraphQLQueryHandler(config, schemaBuilder.build().makeExecutableSchema()));
+            new GraphQLQueryHandler(config, schemaBuilder.build().makeExecutableSchema()),
+            Collections.singletonList(HttpMethod.POST)
+        );
     }
 
     @Override

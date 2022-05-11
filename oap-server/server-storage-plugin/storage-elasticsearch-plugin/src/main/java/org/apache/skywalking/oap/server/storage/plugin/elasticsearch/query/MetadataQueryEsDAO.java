@@ -19,14 +19,17 @@
 package org.apache.skywalking.oap.server.storage.plugin.elasticsearch.query;
 
 import com.google.common.base.Strings;
+import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.skywalking.library.elasticsearch.requests.search.BoolQueryBuilder;
 import org.apache.skywalking.library.elasticsearch.requests.search.Query;
+import org.apache.skywalking.library.elasticsearch.requests.search.RangeQueryBuilder;
 import org.apache.skywalking.library.elasticsearch.requests.search.Search;
 import org.apache.skywalking.library.elasticsearch.requests.search.SearchBuilder;
 import org.apache.skywalking.library.elasticsearch.requests.search.SearchParams;
@@ -41,6 +44,7 @@ import org.apache.skywalking.oap.server.core.analysis.manual.process.ProcessDete
 import org.apache.skywalking.oap.server.core.analysis.manual.process.ProcessTraffic;
 import org.apache.skywalking.oap.server.core.analysis.manual.service.ServiceTraffic;
 import org.apache.skywalking.oap.server.core.query.enumeration.Language;
+import org.apache.skywalking.oap.server.core.query.enumeration.ProfilingSupportStatus;
 import org.apache.skywalking.oap.server.core.query.type.Attribute;
 import org.apache.skywalking.oap.server.core.query.type.Endpoint;
 import org.apache.skywalking.oap.server.core.query.type.Process;
@@ -54,10 +58,11 @@ import org.apache.skywalking.oap.server.storage.plugin.elasticsearch.StorageModu
 import org.apache.skywalking.oap.server.storage.plugin.elasticsearch.base.EsDAO;
 import org.apache.skywalking.oap.server.storage.plugin.elasticsearch.base.IndexController;
 import org.apache.skywalking.oap.server.storage.plugin.elasticsearch.base.MatchCNameBuilder;
-
 import static org.apache.skywalking.oap.server.core.analysis.manual.instance.InstanceTraffic.PropertyUtil.LANGUAGE;
 
 public class MetadataQueryEsDAO extends EsDAO implements IMetadataQueryDAO {
+    private static final Gson GSON = new Gson();
+
     private final int queryMaxSize;
     private final int scrollingBatchSize;
 
@@ -88,18 +93,26 @@ public class MetadataQueryEsDAO extends EsDAO implements IMetadataQueryDAO {
         final List<Service> services = new ArrayList<>();
 
         SearchResponse results = getClient().search(index, search.build(), params);
-        while (results.getHits().getTotal() > 0) {
-            final List<Service> batch = buildServices(results);
-            services.addAll(batch);
-            // The last iterate, there is no more data
-            if (batch.size() < batchSize) {
-                break;
+        while (true) {
+            final String scrollId = results.getScrollId();
+            try {
+                if (results.getHits().getTotal() == 0) {
+                    break;
+                }
+                final List<Service> batch = buildServices(results);
+                services.addAll(batch);
+                // The last iterate, there is no more data
+                if (batch.size() < batchSize) {
+                    break;
+                }
+                // We've got enough data
+                if (services.size() >= queryMaxSize) {
+                    break;
+                }
+                results = getClient().scroll(SCROLL_CONTEXT_RETENTION, scrollId);
+            } finally {
+                getClient().deleteScrollContextQuietly(scrollId);
             }
-            // We've got enough data
-            if (services.size() >= queryMaxSize) {
-                break;
-            }
-            results = getClient().scroll(SCROLL_CONTEXT_RETENTION, results.getScrollId());
         }
         return services;
     }
@@ -197,12 +210,38 @@ public class MetadataQueryEsDAO extends EsDAO implements IMetadataQueryDAO {
     }
 
     @Override
-    public List<Process> listProcesses(String serviceId, String instanceId, String agentId) throws IOException {
+    public List<Process> listProcesses(String serviceId, String instanceId, String agentId, final ProfilingSupportStatus profilingSupportStatus,
+                                       final long lastPingStartTimeBucket, final long lastPingEndTimeBucket) throws IOException {
         final String index =
             IndexController.LogicIndicesRegister.getPhysicalTableName(ProcessTraffic.INDEX_NAME);
 
         final BoolQueryBuilder query = Query.bool();
         final SearchBuilder search = Search.builder().query(query).size(queryMaxSize);
+        appendProcessWhereQuery(query, serviceId, instanceId, agentId, profilingSupportStatus,
+                lastPingStartTimeBucket, lastPingEndTimeBucket);
+        final SearchResponse results = getClient().search(index, search.build());
+
+        return buildProcesses(results);
+    }
+
+    @Override
+    public long getProcessesCount(String serviceId, String instanceId, String agentId, final ProfilingSupportStatus profilingSupportStatus,
+                                  final long lastPingStartTimeBucket, final long lastPingEndTimeBucket) throws IOException {
+        final String index =
+                IndexController.LogicIndicesRegister.getPhysicalTableName(ProcessTraffic.INDEX_NAME);
+
+        final BoolQueryBuilder query = Query.bool();
+        final SearchBuilder search = Search.builder().query(query).size(0);
+        appendProcessWhereQuery(query, serviceId, instanceId, agentId, profilingSupportStatus,
+                lastPingStartTimeBucket, lastPingEndTimeBucket);
+        final SearchResponse results = getClient().search(index, search.build());
+
+        return results.getHits().getTotal();
+    }
+
+    private void appendProcessWhereQuery(BoolQueryBuilder query, String serviceId, String instanceId, String agentId,
+                                         final ProfilingSupportStatus profilingSupportStatus, final long lastPingStartTimeBucket,
+                                         final long lastPingEndTimeBucket) {
         if (StringUtil.isNotEmpty(serviceId)) {
             query.must(Query.term(ProcessTraffic.SERVICE_ID, serviceId));
         }
@@ -212,9 +251,19 @@ public class MetadataQueryEsDAO extends EsDAO implements IMetadataQueryDAO {
         if (StringUtil.isNotEmpty(agentId)) {
             query.must(Query.term(ProcessTraffic.AGENT_ID, agentId));
         }
-        final SearchResponse results = getClient().search(index, search.build());
-
-        return buildProcesses(results);
+        if (profilingSupportStatus != null) {
+            query.must(Query.term(ProcessTraffic.PROFILING_SUPPORT_STATUS, profilingSupportStatus.value()));
+        }
+        final RangeQueryBuilder rangeQuery = Query.range(ProcessTraffic.LAST_PING_TIME_BUCKET);
+        if (lastPingStartTimeBucket > 0) {
+            rangeQuery.gte(lastPingStartTimeBucket);
+        }
+        if (lastPingEndTimeBucket > 0) {
+            rangeQuery.lte(lastPingEndTimeBucket);
+        }
+        if (lastPingStartTimeBucket > 0 || lastPingEndTimeBucket > 0) {
+            query.must(rangeQuery);
+        }
     }
 
     @Override
@@ -260,7 +309,6 @@ public class MetadataQueryEsDAO extends EsDAO implements IMetadataQueryDAO {
             serviceInstance.setId(instanceTraffic.id());
             serviceInstance.setName(instanceTraffic.getName());
             serviceInstance.setInstanceUUID(serviceInstance.getId());
-            serviceInstance.setLayer(instanceTraffic.getLayer().name());
 
             JsonObject properties = instanceTraffic.getProperties();
             if (properties != null) {
@@ -309,6 +357,11 @@ public class MetadataQueryEsDAO extends EsDAO implements IMetadataQueryDAO {
                     String value = property.getValue().getAsString();
                     process.getAttributes().add(new Attribute(key, value));
                 }
+            }
+            final String labelsJson = processTraffic.getLabelsJson();
+            if (StringUtils.isNotEmpty(labelsJson)) {
+                final List<String> labels = GSON.<List<String>>fromJson(labelsJson, ArrayList.class);
+                process.getLabels().addAll(labels);
             }
             processes.add(process);
         }

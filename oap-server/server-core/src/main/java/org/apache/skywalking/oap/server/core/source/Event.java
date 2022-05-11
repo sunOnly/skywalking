@@ -23,6 +23,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.skywalking.oap.server.core.analysis.IDManager;
+import org.apache.skywalking.oap.server.core.analysis.Layer;
 import org.apache.skywalking.oap.server.core.analysis.MetricsExtension;
 import org.apache.skywalking.oap.server.core.analysis.Stream;
 import org.apache.skywalking.oap.server.core.analysis.TimeBucket;
@@ -44,6 +45,7 @@ import static org.apache.skywalking.oap.server.library.util.StringUtil.isNotBlan
 @Getter
 @Setter
 @ScopeDeclaration(id = EVENT, name = "Event", catalog = SERVICE_CATALOG_NAME)
+@ScopeDefaultColumn.VirtualColumnDefinition(fieldName = "entityId", columnName = "entity_id", isID = true, type = String.class)
 @Stream(name = Event.INDEX_NAME, scopeId = EVENT, builder = Event.Builder.class, processor = MetricsStreamProcessor.class)
 @EqualsAndHashCode(
     callSuper = false,
@@ -73,6 +75,8 @@ public class Event extends Metrics implements ISource, WithMetadata, LongValueHo
     public static final String START_TIME = "start_time";
 
     public static final String END_TIME = "end_time";
+
+    public static final String LAYER = "layer";
 
     private static final int PARAMETER_MAX_LENGTH = 2000;
 
@@ -110,6 +114,9 @@ public class Event extends Metrics implements ISource, WithMetadata, LongValueHo
 
     @Column(columnName = END_TIME)
     private long endTime;
+
+    @Column(columnName = LAYER)
+    private Layer layer;
 
     private transient long value = 1;
 
@@ -185,6 +192,8 @@ public class Event extends Metrics implements ISource, WithMetadata, LongValueHo
         setStartTime(remoteData.getDataLongs(0));
         setEndTime(remoteData.getDataLongs(1));
         setTimeBucket(remoteData.getDataLongs(2));
+
+        setLayer(Layer.valueOf(remoteData.getDataIntegers(0)));
     }
 
     @Override
@@ -203,6 +212,8 @@ public class Event extends Metrics implements ISource, WithMetadata, LongValueHo
         builder.addDataLongs(getStartTime());
         builder.addDataLongs(getEndTime());
         builder.addDataLongs(getTimeBucket());
+
+        builder.addDataIntegers(getLayer().value());
 
         return builder;
     }
@@ -257,6 +268,9 @@ public class Event extends Metrics implements ISource, WithMetadata, LongValueHo
             record.setStartTime(((Number) converter.get(START_TIME)).longValue());
             record.setEndTime(((Number) converter.get(END_TIME)).longValue());
             record.setTimeBucket(((Number) converter.get(TIME_BUCKET)).longValue());
+            if (converter.get(LAYER) != null) {
+                record.setLayer(Layer.valueOf(((Number) converter.get(LAYER)).intValue()));
+            }
             return record;
         }
 
@@ -273,6 +287,8 @@ public class Event extends Metrics implements ISource, WithMetadata, LongValueHo
             converter.accept(START_TIME, storageData.getStartTime());
             converter.accept(END_TIME, storageData.getEndTime());
             converter.accept(TIME_BUCKET, storageData.getTimeBucket());
+            Layer layer = storageData.getLayer();
+            converter.accept(LAYER, layer != null ? layer.value() : Layer.UNDEFINED.value());
         }
     }
 }

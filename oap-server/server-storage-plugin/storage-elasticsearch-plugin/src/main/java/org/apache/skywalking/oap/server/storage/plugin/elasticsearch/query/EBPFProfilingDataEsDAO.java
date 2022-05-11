@@ -47,26 +47,34 @@ public class EBPFProfilingDataEsDAO extends EsDAO implements IEBPFProfilingDataD
     }
 
     @Override
-    public List<EBPFProfilingDataRecord> queryData(String taskId, long beginTime, long endTime) throws IOException {
+    public List<EBPFProfilingDataRecord> queryData(List<String> scheduleIdList, long beginTime, long endTime) throws IOException {
         final String index =
                 IndexController.LogicIndicesRegister.getPhysicalTableName(EBPFProfilingDataRecord.INDEX_NAME);
         final BoolQueryBuilder query = Query.bool();
         final SearchBuilder search = Search.builder().query(query).size(scrollingBatchSize);
-        query.must(Query.term(EBPFProfilingDataRecord.TASK_ID, taskId));
+        query.must(Query.terms(EBPFProfilingDataRecord.SCHEDULE_ID, scheduleIdList));
         query.must(Query.range(EBPFProfilingDataRecord.UPLOAD_TIME).gte(beginTime).lt(endTime));
 
         final SearchParams params = new SearchParams().scroll(SCROLL_CONTEXT_RETENTION);
         final List<EBPFProfilingDataRecord> records = new ArrayList<>();
 
         SearchResponse results = getClient().search(index, search.build(), params);
-        while (results.getHits().getTotal() > 0) {
-            final List<EBPFProfilingDataRecord> batch = buildDataList(results);
-            records.addAll(batch);
-            // The last iterate, there is no more data
-            if (batch.size() < scrollingBatchSize) {
-                break;
+        while (true) {
+            final String scrollId = results.getScrollId();
+            try {
+                if (results.getHits().getTotal() == 0) {
+                    break;
+                }
+                final List<EBPFProfilingDataRecord> batch = buildDataList(results);
+                records.addAll(batch);
+                // The last iterate, there is no more data
+                if (batch.size() < scrollingBatchSize) {
+                    break;
+                }
+                results = getClient().scroll(SCROLL_CONTEXT_RETENTION, scrollId);
+            } finally {
+                getClient().deleteScrollContextQuietly(scrollId);
             }
-            results = getClient().scroll(SCROLL_CONTEXT_RETENTION, results.getScrollId());
         }
         return records;
     }

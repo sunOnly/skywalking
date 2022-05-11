@@ -30,18 +30,19 @@ import org.apache.skywalking.apm.network.ebpf.profiling.v3.EBPFProfilingTaskQuer
 import org.apache.skywalking.oap.server.core.CoreModule;
 import org.apache.skywalking.oap.server.core.command.CommandService;
 import org.apache.skywalking.oap.server.core.profiling.ebpf.storage.EBPFProfilingStackType;
+import org.apache.skywalking.oap.server.core.query.enumeration.ProfilingSupportStatus;
 import org.apache.skywalking.oap.server.core.query.type.EBPFProfilingTask;
 import org.apache.skywalking.oap.server.core.query.type.Process;
 import org.apache.skywalking.oap.server.core.source.EBPFProfilingData;
 import org.apache.skywalking.oap.server.core.source.EBPFProcessProfilingSchedule;
 import org.apache.skywalking.oap.server.core.source.SourceReceiver;
 import org.apache.skywalking.oap.server.core.storage.StorageModule;
-import org.apache.skywalking.oap.server.core.storage.profiling.ebpf.EBPFProfilingProcessFinder;
 import org.apache.skywalking.oap.server.core.storage.profiling.ebpf.IEBPFProfilingTaskDAO;
 import org.apache.skywalking.oap.server.core.storage.query.IMetadataQueryDAO;
 import org.apache.skywalking.oap.server.library.module.ModuleManager;
 import org.apache.skywalking.oap.server.library.server.grpc.GRPCHandler;
 import org.apache.skywalking.oap.server.library.util.CollectionUtils;
+import org.apache.skywalking.oap.server.network.trace.component.command.EBPFProfilingTaskCommand;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -49,6 +50,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -77,7 +79,8 @@ public class EBPFProfilingServiceHandler extends EBPFProfilingServiceGrpc.EBPFPr
         final long latestUpdateTime = request.getLatestUpdateTime();
         try {
             // find exists process from agent
-            final List<Process> processes = metadataQueryDAO.listProcesses(null, null, agentId);
+            final List<Process> processes = metadataQueryDAO.listProcesses(null, null, agentId,
+                    ProfilingSupportStatus.SUPPORT_EBPF_PROFILING, 0, 0);
             if (CollectionUtils.isEmpty(processes)) {
                 responseObserver.onNext(Commands.newBuilder().build());
                 responseObserver.onCompleted();
@@ -85,11 +88,12 @@ public class EBPFProfilingServiceHandler extends EBPFProfilingServiceGrpc.EBPFPr
             }
 
             // fetch tasks from process id list
-            final EBPFProfilingProcessFinder finder = EBPFProfilingProcessFinder.builder()
-                    .processIdList(processes.stream().map(Process::getId).collect(Collectors.toList())).build();
-            final List<EBPFProfilingTask> tasks = taskDAO.queryTasks(finder, null, 0, latestUpdateTime);
+            final List<String> serviceIdList = processes.stream().map(Process::getServiceId).distinct().collect(Collectors.toList());
+            final List<EBPFProfilingTask> tasks = taskDAO.queryTasks(serviceIdList, null, 0, latestUpdateTime);
+
             final Commands.Builder builder = Commands.newBuilder();
-            tasks.stream().map(t -> commandService.newEBPFProfilingTaskCommand(t).serialize()).forEach(builder::addCommands);
+            tasks.stream().flatMap(t -> this.buildProfilingCommands(t, processes).stream())
+                    .map(EBPFProfilingTaskCommand::serialize).forEach(builder::addCommands);
             responseObserver.onNext(builder.build());
             responseObserver.onCompleted();
             return;
@@ -98,6 +102,23 @@ public class EBPFProfilingServiceHandler extends EBPFProfilingServiceGrpc.EBPFPr
         }
         responseObserver.onNext(Commands.newBuilder().build());
         responseObserver.onCompleted();
+    }
+
+    private List<EBPFProfilingTaskCommand> buildProfilingCommands(EBPFProfilingTask task, List<Process> processes) {
+        final ArrayList<EBPFProfilingTaskCommand> commands = new ArrayList<>(processes.size());
+        for (Process process : processes) {
+            // The service id must match between process and task
+            if (!Objects.equals(process.getServiceId(), task.getServiceId())) {
+                continue;
+            }
+
+            // If the task doesn't require a label or the process match all labels in task
+            if (CollectionUtils.isEmpty(task.getProcessLabels())
+                    || process.getLabels().containsAll(task.getProcessLabels())) {
+                commands.add(commandService.newEBPFProfilingTaskCommand(task, process.getId()));
+            }
+        }
+        return commands;
     }
 
     @Override
@@ -147,7 +168,6 @@ public class EBPFProfilingServiceHandler extends EBPFProfilingServiceGrpc.EBPFPr
             @Override
             public void onError(Throwable throwable) {
                 log.error("Error in receiving ebpf profiling data", throwable);
-                responseObserver.onCompleted();
             }
 
             @Override

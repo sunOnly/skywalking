@@ -31,6 +31,7 @@ import org.apache.skywalking.oap.server.core.storage.StorageModule;
 import org.apache.skywalking.oap.server.core.storage.cache.INetworkAddressAliasDAO;
 import org.apache.skywalking.oap.server.core.storage.management.UITemplateManagementDAO;
 import org.apache.skywalking.oap.server.core.storage.model.ModelCreator;
+import org.apache.skywalking.oap.server.core.storage.profiling.ebpf.IServiceLabelDAO;
 import org.apache.skywalking.oap.server.core.storage.profiling.trace.IProfileTaskLogQueryDAO;
 import org.apache.skywalking.oap.server.core.storage.profiling.trace.IProfileTaskQueryDAO;
 import org.apache.skywalking.oap.server.core.storage.profiling.trace.IProfileThreadSnapshotQueryDAO;
@@ -44,6 +45,7 @@ import org.apache.skywalking.oap.server.core.storage.query.IEventQueryDAO;
 import org.apache.skywalking.oap.server.core.storage.query.ILogQueryDAO;
 import org.apache.skywalking.oap.server.core.storage.query.IMetadataQueryDAO;
 import org.apache.skywalking.oap.server.core.storage.query.IMetricsQueryDAO;
+import org.apache.skywalking.oap.server.core.storage.query.ITagAutoCompleteQueryDAO;
 import org.apache.skywalking.oap.server.core.storage.query.ITopNRecordsQueryDAO;
 import org.apache.skywalking.oap.server.core.storage.query.ITopologyQueryDAO;
 import org.apache.skywalking.oap.server.core.storage.query.ITraceQueryDAO;
@@ -70,6 +72,8 @@ import org.apache.skywalking.oap.server.storage.plugin.iotdb.query.IoTDBEventQue
 import org.apache.skywalking.oap.server.storage.plugin.iotdb.query.IoTDBLogQueryDAO;
 import org.apache.skywalking.oap.server.storage.plugin.iotdb.query.IoTDBMetadataQueryDAO;
 import org.apache.skywalking.oap.server.storage.plugin.iotdb.query.IoTDBMetricsQueryDAO;
+import org.apache.skywalking.oap.server.storage.plugin.iotdb.query.IoTDBServiceLabelQueryDAO;
+import org.apache.skywalking.oap.server.storage.plugin.iotdb.query.IoTDBTagAutoCompleteQueryDAO;
 import org.apache.skywalking.oap.server.storage.plugin.iotdb.query.IoTDBTopNRecordsQueryDAO;
 import org.apache.skywalking.oap.server.storage.plugin.iotdb.query.IoTDBTopologyQueryDAO;
 import org.apache.skywalking.oap.server.storage.plugin.iotdb.query.IoTDBTraceQueryDAO;
@@ -117,10 +121,10 @@ public class IoTDBStorageProvider extends ModuleProvider {
         this.registerServiceImplementation(UITemplateManagementDAO.class, new IoTDBUITemplateManagementDAO(client));
 
         this.registerServiceImplementation(IProfileTaskLogQueryDAO.class,
-                new IoTDBProfileTaskLogQueryDAO(client, config.getFetchTaskLogMaxSize()));
+                                           new IoTDBProfileTaskLogQueryDAO(client, config.getFetchTaskLogMaxSize()));
         this.registerServiceImplementation(IProfileTaskQueryDAO.class, new IoTDBProfileTaskQueryDAO(client));
         this.registerServiceImplementation(IProfileThreadSnapshotQueryDAO.class,
-                new IoTDBProfileThreadSnapshotQueryDAO(client));
+                                           new IoTDBProfileThreadSnapshotQueryDAO(client));
 
         this.registerServiceImplementation(IAggregationQueryDAO.class, new IoTDBAggregationQueryDAO(client));
         this.registerServiceImplementation(IAlarmQueryDAO.class, new IoTDBAlarmQueryDAO(client));
@@ -136,13 +140,15 @@ public class IoTDBStorageProvider extends ModuleProvider {
         this.registerServiceImplementation(IEBPFProfilingTaskDAO.class, new IoTDBEBPFProfilingTaskDAO(client));
         this.registerServiceImplementation(IEBPFProfilingScheduleDAO.class, new IoTDBEBPFProfilingScheduleDAO(client));
         this.registerServiceImplementation(IEBPFProfilingDataDAO.class, new IoTDBEBPFProfilingDataDAO(client));
+        this.registerServiceImplementation(IServiceLabelDAO.class, new IoTDBServiceLabelQueryDAO(client));
+        this.registerServiceImplementation(ITagAutoCompleteQueryDAO.class, new IoTDBTagAutoCompleteQueryDAO(client));
     }
 
     @Override
     public void start() throws ServiceNotProvidedException, ModuleStartException {
         MetricsCreator metricCreator = getManager().find(TelemetryModule.NAME)
-                .provider()
-                .getService(MetricsCreator.class);
+                                                   .provider()
+                                                   .getService(MetricsCreator.class);
         HealthCheckMetrics healthChecker = metricCreator.createHealthCheckerGauge(
                 "storage_iotdb", MetricsTag.EMPTY_KEY, MetricsTag.EMPTY_VALUE);
         client.registerChecker(healthChecker);
