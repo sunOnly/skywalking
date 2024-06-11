@@ -19,7 +19,6 @@
 package org.apache.skywalking.oap.server.core.query.input;
 
 import java.util.Objects;
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.skywalking.oap.server.core.analysis.IDManager;
@@ -31,17 +30,22 @@ import org.apache.skywalking.oap.server.core.query.enumeration.Scope;
  * @since 8.0.0
  */
 @Setter
-@Getter(AccessLevel.PRIVATE)
+@Getter
 public class Entity {
     /**
      * <pre>
      * 1. scope=All, no name is required.
-     * 2. scope=Service, ServiceInstance and Endpoint, set neccessary serviceName/serviceInstanceName/endpointName
+     * 2. scope=Service, ServiceInstance and Endpoint, set necessary serviceName/serviceInstanceName/endpointName
      * 3. Scope=ServiceRelation, ServiceInstanceRelation and EndpointRelation
      *    serviceName/serviceInstanceName/endpointName is/are the source(s)
      *    estServiceName/destServiceInstanceName/destEndpointName is/are destination(s)
      *    set necessary names of sources and destinations.
      * </pre>
+     *
+     * @see MetricsCondition
+     * @see RecordCondition
+     * @see TopNCondition
+     * @since 9.4.0 Scope could be sensed automatically through query condition's metric name.
      */
     private Scope scope;
 
@@ -53,6 +57,7 @@ public class Entity {
     private Boolean normal;
     private String serviceInstanceName;
     private String endpointName;
+    private String processName;
 
     private String destServiceName;
     /**
@@ -62,6 +67,7 @@ public class Entity {
     private Boolean destNormal;
     private String destServiceInstanceName;
     private String destEndpointName;
+    private String destProcessName;
 
     public boolean isService() {
         return Scope.Service.equals(scope);
@@ -81,6 +87,8 @@ public class Entity {
                 return Objects.nonNull(serviceName) && Objects.nonNull(serviceInstanceName) && Objects.nonNull(normal);
             case Endpoint:
                 return Objects.nonNull(serviceName) && Objects.nonNull(endpointName) && Objects.nonNull(normal);
+            case Process:
+                return Objects.nonNull(serviceName) && Objects.nonNull(serviceInstanceName) && Objects.nonNull(processName) && Objects.nonNull(normal);
             case ServiceRelation:
                 return Objects.nonNull(serviceName) && Objects.nonNull(destServiceName)
                     && Objects.nonNull(normal) && Objects.nonNull(destNormal);
@@ -91,6 +99,11 @@ public class Entity {
             case EndpointRelation:
                 return Objects.nonNull(serviceName) && Objects.nonNull(destServiceName)
                     && Objects.nonNull(endpointName) && Objects.nonNull(destEndpointName)
+                    && Objects.nonNull(normal) && Objects.nonNull(destNormal);
+            case ProcessRelation:
+                return Objects.nonNull(serviceName) && Objects.nonNull(destServiceName)
+                    && Objects.nonNull(serviceInstanceName) && Objects.nonNull(destServiceInstanceName)
+                    && Objects.nonNull(processName) && Objects.nonNull(destProcessName)
                     && Objects.nonNull(normal) && Objects.nonNull(destNormal);
             default:
                 return false;
@@ -112,6 +125,8 @@ public class Entity {
                     IDManager.ServiceID.buildId(serviceName, normal), serviceInstanceName);
             case Endpoint:
                 return IDManager.EndpointID.buildId(IDManager.ServiceID.buildId(serviceName, normal), endpointName);
+            case Process:
+                return IDManager.ProcessID.buildId(IDManager.ServiceInstanceID.buildId(IDManager.ServiceID.buildId(serviceName, normal), serviceInstanceName), processName);
             case ServiceRelation:
                 return IDManager.ServiceID.buildRelationId(
                     new IDManager.ServiceID.ServiceRelationDefine(
@@ -135,6 +150,21 @@ public class Entity {
                         endpointName,
                         IDManager.ServiceID.buildId(destServiceName, destNormal),
                         destEndpointName
+                    )
+                );
+            case ProcessRelation:
+                return IDManager.ProcessID.buildRelationId(
+                    new IDManager.ProcessID.ProcessRelationDefine(
+                        IDManager.ProcessID.buildId(
+                            IDManager.ServiceInstanceID.buildId(
+                                IDManager.ServiceID.buildId(serviceName, normal), serviceInstanceName),
+                            processName
+                        ),
+                        IDManager.ProcessID.buildId(
+                            IDManager.ServiceInstanceID.buildId(
+                                IDManager.ServiceID.buildId(destServiceName, destNormal), destServiceInstanceName),
+                            destProcessName
+                        )
                     )
                 );
             default:

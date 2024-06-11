@@ -27,21 +27,28 @@ import org.apache.skywalking.oap.server.core.command.CommandService;
 import org.apache.skywalking.oap.server.core.config.ConfigService;
 import org.apache.skywalking.oap.server.core.config.DownSamplingConfigService;
 import org.apache.skywalking.oap.server.core.config.IComponentLibraryCatalogService;
+import org.apache.skywalking.oap.server.core.config.HierarchyDefinitionService;
 import org.apache.skywalking.oap.server.core.config.NamingControl;
+import org.apache.skywalking.oap.server.core.hierarchy.HierarchyService;
+import org.apache.skywalking.oap.server.core.management.ui.menu.UIMenuManagementService;
 import org.apache.skywalking.oap.server.core.management.ui.template.UITemplateManagementService;
 import org.apache.skywalking.oap.server.core.oal.rt.OALEngineLoaderService;
+import org.apache.skywalking.oap.server.core.profiling.continuous.ContinuousProfilingMutationService;
+import org.apache.skywalking.oap.server.core.profiling.continuous.ContinuousProfilingQueryService;
 import org.apache.skywalking.oap.server.core.profiling.ebpf.EBPFProfilingMutationService;
 import org.apache.skywalking.oap.server.core.profiling.ebpf.EBPFProfilingQueryService;
 import org.apache.skywalking.oap.server.core.profiling.trace.ProfileTaskMutationService;
+import org.apache.skywalking.oap.server.core.profiling.trace.ProfileTaskQueryService;
 import org.apache.skywalking.oap.server.core.query.AggregationQueryService;
 import org.apache.skywalking.oap.server.core.query.AlarmQueryService;
 import org.apache.skywalking.oap.server.core.query.BrowserLogQueryService;
 import org.apache.skywalking.oap.server.core.query.EventQueryService;
+import org.apache.skywalking.oap.server.core.query.HierarchyQueryService;
 import org.apache.skywalking.oap.server.core.query.LogQueryService;
 import org.apache.skywalking.oap.server.core.query.MetadataQueryService;
 import org.apache.skywalking.oap.server.core.query.MetricsMetadataQueryService;
 import org.apache.skywalking.oap.server.core.query.MetricsQueryService;
-import org.apache.skywalking.oap.server.core.profiling.trace.ProfileTaskQueryService;
+import org.apache.skywalking.oap.server.core.query.RecordQueryService;
 import org.apache.skywalking.oap.server.core.query.TagAutoCompleteQueryService;
 import org.apache.skywalking.oap.server.core.query.TopNRecordsQueryService;
 import org.apache.skywalking.oap.server.core.query.TopologyQueryService;
@@ -51,6 +58,7 @@ import org.apache.skywalking.oap.server.core.remote.client.RemoteClientManager;
 import org.apache.skywalking.oap.server.core.server.GRPCHandlerRegister;
 import org.apache.skywalking.oap.server.core.server.HTTPHandlerRegister;
 import org.apache.skywalking.oap.server.core.source.SourceReceiver;
+import org.apache.skywalking.oap.server.core.status.ServerStatusService;
 import org.apache.skywalking.oap.server.core.storage.model.IModelManager;
 import org.apache.skywalking.oap.server.core.storage.model.ModelCreator;
 import org.apache.skywalking.oap.server.core.storage.model.ModelManipulator;
@@ -72,9 +80,11 @@ public class CoreModule extends ModuleDefine {
     public Class[] services() {
         List<Class> classes = new ArrayList<>();
         classes.add(ConfigService.class);
+        classes.add(ServerStatusService.class);
         classes.add(DownSamplingConfigService.class);
         classes.add(NamingControl.class);
         classes.add(IComponentLibraryCatalogService.class);
+        classes.add(HierarchyDefinitionService.class);
 
         classes.add(IWorkerInstanceGetter.class);
         classes.add(IWorkerInstanceSetter.class);
@@ -92,17 +102,20 @@ public class CoreModule extends ModuleDefine {
         addEBPFProfilingService(classes);
 
         classes.add(CommandService.class);
-
+        classes.add(HierarchyService.class);
         return classes.toArray(new Class[]{});
     }
 
     private void addEBPFProfilingService(List<Class> classes) {
         classes.add(EBPFProfilingMutationService.class);
         classes.add(EBPFProfilingQueryService.class);
+        classes.add(ContinuousProfilingMutationService.class);
+        classes.add(ContinuousProfilingQueryService.class);
     }
 
     private void addManagementService(List<Class> classes) {
         classes.add(UITemplateManagementService.class);
+        classes.add(UIMenuManagementService.class);
     }
 
     private void addProfileService(List<Class> classes) {
@@ -128,6 +141,8 @@ public class CoreModule extends ModuleDefine {
         classes.add(BrowserLogQueryService.class);
         classes.add(EventQueryService.class);
         classes.add(TagAutoCompleteQueryService.class);
+        classes.add(RecordQueryService.class);
+        classes.add(HierarchyQueryService.class);
     }
 
     private void addServerInterface(List<Class> classes) {

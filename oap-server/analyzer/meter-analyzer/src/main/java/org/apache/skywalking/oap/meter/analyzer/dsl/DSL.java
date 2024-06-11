@@ -25,6 +25,8 @@ import groovy.util.DelegatingScript;
 import java.lang.reflect.Array;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.skywalking.oap.meter.analyzer.dsl.registry.ProcessRegistry;
 import org.apache.skywalking.oap.meter.analyzer.dsl.tagOpt.K8sRetagType;
 import org.apache.skywalking.oap.server.core.analysis.Layer;
 import org.apache.skywalking.oap.server.core.source.DetectPoint;
@@ -44,16 +46,18 @@ public final class DSL {
     /**
      * Parse string literal to Expression object, which can be reused.
      *
+     * @param metricName the name of metric defined in mal rule
      * @param expression string literal represents the DSL expression.
      * @return Expression object could be executed.
      */
-    public static Expression parse(final String expression) {
+    public static Expression parse(final String metricName, final String expression) {
         CompilerConfiguration cc = new CompilerConfiguration();
         cc.setScriptBaseClass(DelegatingScript.class.getName());
         ImportCustomizer icz = new ImportCustomizer();
         icz.addImport("K8sRetagType", K8sRetagType.class.getName());
         icz.addImport("DetectPoint", DetectPoint.class.getName());
         icz.addImport("Layer", Layer.class.getName());
+        icz.addImport("ProcessRegistry", ProcessRegistry.class.getName());
         cc.addCompilationCustomizers(icz);
 
         final SecureASTCustomizer secureASTCustomizer = new SecureASTCustomizer();
@@ -73,11 +77,12 @@ public final class DSL {
                          .add(K8sRetagType.class)
                          .add(DetectPoint.class)
                          .add(Layer.class)
-                         .build());
+                         .add(ProcessRegistry.class)
+                .build());
         cc.addCompilationCustomizers(secureASTCustomizer);
 
         GroovyShell sh = new GroovyShell(new Binding(), cc);
         DelegatingScript script = (DelegatingScript) sh.parse(expression);
-        return new Expression(expression, script);
+        return new Expression(metricName, expression, script);
     }
 }

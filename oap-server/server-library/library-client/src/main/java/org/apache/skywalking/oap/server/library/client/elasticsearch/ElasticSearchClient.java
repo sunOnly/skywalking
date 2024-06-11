@@ -24,6 +24,8 @@ import com.google.common.collect.Iterables;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -33,12 +35,13 @@ import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.skywalking.library.elasticsearch.requests.search.Query;
+import org.apache.skywalking.library.elasticsearch.response.Documents;
 import org.apache.skywalking.oap.server.library.util.StringUtil;
 import org.apache.skywalking.library.elasticsearch.ElasticSearch;
 import org.apache.skywalking.library.elasticsearch.ElasticSearchBuilder;
 import org.apache.skywalking.library.elasticsearch.ElasticSearchVersion;
 import org.apache.skywalking.library.elasticsearch.bulk.BulkProcessor;
-import org.apache.skywalking.library.elasticsearch.requests.search.Query;
 import org.apache.skywalking.library.elasticsearch.requests.search.Search;
 import org.apache.skywalking.library.elasticsearch.requests.search.SearchParams;
 import org.apache.skywalking.library.elasticsearch.response.Document;
@@ -253,9 +256,13 @@ public class ElasticSearchClient implements Client, HealthCheckable {
             Arrays.stream(indices.get())
                   .map(indexNameConverter)
                   .toArray(String[]::new);
+        final SearchParams params = new SearchParams()
+            .allowNoIndices(true)
+            .ignoreUnavailable(true)
+            .expandWildcards("open");
         return es.get().search(
             search,
-            null,
+            params,
             indexNames);
     }
 
@@ -296,7 +303,29 @@ public class ElasticSearchClient implements Client, HealthCheckable {
         return es.get().documents().exists(indexName, TYPE, id);
     }
 
-    public SearchResponse ids(String indexName, Iterable<String> ids) {
+    /**
+     * Provide to get documents from multi indices by IDs.
+     * @param indexIds key: indexName, value: ids list
+     * @return Documents
+     * @since 9.2.0
+     */
+    public Optional<Documents> ids(Map<String, List<String>> indexIds) {
+        Map<String, List<String>> map = new HashMap<>();
+        indexIds.forEach((indexName, ids) -> {
+            map.put(indexNameConverter.apply(indexName), ids);
+        });
+        return es.get().documents().mget(TYPE, map);
+    }
+
+    /**
+     * Search by ids with index alias, when can not locate the physical index.
+     * Otherwise, recommend use method {@link #ids}
+     * @param indexName Index alias name or physical name
+     * @param ids ID list
+     * @return SearchResponse
+     * @since 9.2.0 this method was ids
+     */
+    public SearchResponse searchIDs(String indexName, Iterable<String> ids) {
         indexName = indexNameConverter.apply(indexName);
 
         return es.get().search(Search.builder()
@@ -317,10 +346,21 @@ public class ElasticSearchClient implements Client, HealthCheckable {
         es.get().documents().update(wrapper.getRequest(), params);
     }
 
+    public void deleteById(String indexName, String id) {
+        indexName = indexNameConverter.apply(indexName);
+        Map<String, Object> params = ImmutableMap.of("refresh", "true");
+        es.get().documents().deleteById(indexName, TYPE, id, params);
+    }
+
     public IndexRequestWrapper prepareInsert(String indexName, String id,
                                              Map<String, Object> source) {
+        return prepareInsert(indexName, id, Optional.empty(), source);
+    }
+
+    public IndexRequestWrapper prepareInsert(String indexName, String id, Optional<String> routingValue,
+                                             Map<String, Object> source) {
         indexName = indexNameConverter.apply(indexName);
-        return new IndexRequestWrapper(indexName, TYPE, id, source);
+        return new IndexRequestWrapper(indexName, TYPE, id, routingValue, source);
     }
 
     public UpdateRequestWrapper prepareUpdate(String indexName, String id,
@@ -331,9 +371,11 @@ public class ElasticSearchClient implements Client, HealthCheckable {
 
     public BulkProcessor createBulkProcessor(int bulkActions,
                                              int flushInterval,
-                                             int concurrentRequests) {
+                                             int concurrentRequests,
+                                             int batchOfBytes) {
         return BulkProcessor.builder()
                             .bulkActions(bulkActions)
+                            .batchOfBytes(batchOfBytes)
                             .flushInterval(Duration.ofSeconds(flushInterval))
                             .concurrentRequests(concurrentRequests)
                             .build(es);

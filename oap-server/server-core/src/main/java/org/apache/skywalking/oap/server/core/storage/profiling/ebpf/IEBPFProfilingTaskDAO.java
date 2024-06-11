@@ -19,7 +19,8 @@
 package org.apache.skywalking.oap.server.core.storage.profiling.ebpf;
 
 import org.apache.skywalking.oap.server.core.profiling.ebpf.storage.EBPFProfilingTargetType;
-import org.apache.skywalking.oap.server.core.query.type.EBPFProfilingTask;
+import org.apache.skywalking.oap.server.core.profiling.ebpf.storage.EBPFProfilingTaskRecord;
+import org.apache.skywalking.oap.server.core.profiling.ebpf.storage.EBPFProfilingTriggerType;
 import org.apache.skywalking.oap.server.core.storage.DAO;
 
 import java.io.IOException;
@@ -31,13 +32,24 @@ import java.util.List;
 public interface IEBPFProfilingTaskDAO extends DAO {
 
     /**
-     * list profiling tasks
-     * @param serviceIdList which service is belong
-     * @param targetType profiling task target type
-     * @param taskStartTime profiling task start timestamp, bigger than or equals
-     * @param latestUpdateTime  profiling task last update timestamp, bigger than
+     * Query profiling task through service id list
+     * @param serviceIdList cannot be empty
      */
-    List<EBPFProfilingTask> queryTasks(List<String> serviceIdList,
-                                       EBPFProfilingTargetType targetType,
-                                       long taskStartTime, long latestUpdateTime) throws IOException;
+    List<EBPFProfilingTaskRecord> queryTasksByServices(List<String> serviceIdList, EBPFProfilingTriggerType triggerType,
+                                                 long taskStartTime, long latestUpdateTime) throws IOException;
+
+    /**
+     * Query profiling task through target types
+     * @param targetTypes cannot be empty
+     */
+    List<EBPFProfilingTaskRecord> queryTasksByTargets(String serviceId, String serviceInstanceId,
+                                                List<EBPFProfilingTargetType> targetTypes,
+                                                EBPFProfilingTriggerType triggerType,
+                                                long taskStartTime, long latestUpdateTime) throws IOException;
+
+    /**
+     * Query profiling task by logical ID
+     * @param id {@link EBPFProfilingTaskRecord#getLogicalId()}
+     */
+    List<EBPFProfilingTaskRecord> getTaskRecord(String id) throws IOException;
 }

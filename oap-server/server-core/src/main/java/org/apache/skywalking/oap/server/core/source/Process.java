@@ -22,15 +22,15 @@ import com.google.gson.JsonObject;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.skywalking.oap.server.core.analysis.IDManager;
-import org.apache.skywalking.oap.server.core.analysis.Layer;
 import org.apache.skywalking.oap.server.core.analysis.manual.process.ProcessDetectType;
 import org.apache.skywalking.oap.server.core.query.enumeration.ProfilingSupportStatus;
 
 import java.util.List;
 
 import static org.apache.skywalking.oap.server.core.source.DefaultScopeDefine.PROCESS;
+import static org.apache.skywalking.oap.server.core.source.DefaultScopeDefine.PROCESS_CATALOG_NAME;
 
-@ScopeDeclaration(id = PROCESS, name = "Process")
+@ScopeDeclaration(id = PROCESS, name = "Process", catalog = PROCESS_CATALOG_NAME)
 @ScopeDefaultColumn.VirtualColumnDefinition(fieldName = "entityId", columnName = "entity_id", isID = true, type = String.class)
 public class Process extends Source {
     private volatile String entityId;
@@ -61,9 +61,6 @@ public class Process extends Source {
     @Getter
     @Setter
     private String instanceName;
-    @Getter
-    @Setter
-    private Layer layer;
     @Getter
     @Setter
     private boolean isServiceNormal;

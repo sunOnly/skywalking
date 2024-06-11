@@ -28,10 +28,21 @@
 # languages
 # ######
 # Languages declare which languages are using this component. Multi languages should be separated by `,`
+#
+# ######
+# priority
+# ######
+# Component ID priority represents the component is degree of closeness between the library and business codes
+# The higher the atomic number, the higher the priority, which mean it is closer to the business codes,
+# further away from OS kernel or general Computer Science concept.
+# The range of priorities is [0, 100], both sided included. 0 is the highest priority.
+# To keep forward compatibility, the default(when not set) priority is 50.
+# For example, a typical priority sequence is TCP < TLS(TCP) < RPC < HTTP < HTTPS < gRPC/SpringMVC/Dubbo
 
 Unknown:
   id: 0
   language: All
+  priority: 0
 Tomcat:
   id: 1
   languages: Java
@@ -74,9 +85,11 @@ SpringRestTemplate:
 SpringMVC:
   id: 14
   languages: Java
+  priority: 60
 Struts2:
   id: 15
   languages: Java
+  priority: 60
 NutzMVC:
   id: 16
   languages: Java
@@ -106,13 +119,13 @@ ElasticJob:
   languages: Java
 RocketMQ:
   id: 25
-  languages: Java
+  languages: Java,Golang
 httpasyncclient:
   id: 26
   languages: Java
 Kafka:
   id: 27
-  languages: Java
+  languages: Java,Golang
 ServiceComb:
   id: 28
   languages: Java
@@ -145,16 +158,16 @@ postgresql-jdbc-driver:
   languages: Java
 rocketMQ-producer:
   id: 38
-  languages: Java
+  languages: Java,Golang
 rocketMQ-consumer:
   id: 39
-  languages: Java
+  languages: Java,Golang
 kafka-producer:
   id: 40
-  languages: Java,Python
+  languages: Java,Python,Golang
 kafka-consumer:
   id: 41
-  languages: Java,Python
+  languages: Java,Python,Golang
 mongodb-driver:
   id: 42
   languages: Java
@@ -172,16 +185,18 @@ activemq-consumer:
   languages: Java
 Elasticsearch:
   id: 47
-  languages: Java,Python
+  languages: Java,Python,Golang
 transport-client:
   id: 48
   languages: Java
 http:
   id: 49
   languages: Java,C#,Node.js
+  priority: 45
 rpc:
   id: 50
   languages: Java,C#,Node.js
+  priority: 20
 RabbitMQ:
   id: 51
   languages: Java
@@ -247,13 +262,13 @@ Light4J:
   languages: Java
 Pulsar:
   id: 72
-  languages: Java
+  languages: Java,Golang
 pulsar-producer:
   id: 73
-  languages: Java
+  languages: Java,Golang
 pulsar-consumer:
   id: 74
-  languages: Java
+  languages: Java,Golang
 Ehcache:
   id: 75
   languages: Java
@@ -313,7 +328,7 @@ spring-annotation:
   languages: Java
 HBase:
   id: 94
-  languages: Java
+  languages: Java,Python
 spring-kafka-consumer:
   id: 95
   languages: Java
@@ -362,12 +377,13 @@ MyBatis:
 tcp:
   id: 110
   languages: Java
+  priority: 10
 AzureHttpTrigger:
   id: 111
   languages: Java,C#,Node.js,Python
 Neo4j:
   id: 112
-  languages: Java
+  languages: Java,Python
 Sentinel:
   id: 113
   languages: Java
@@ -412,6 +428,100 @@ AWSLambdaGatewayAPIREST:
   languages: Java,C#,Node.js,Python
 Apache-ShenYu:
   id: 127
+  languages: Java
+Hutool:
+  id: 128
+  languages: Java
+https:
+  id: 129
+  languages: ebpf
+  priority: 46
+tls:
+  id: 130
+  languages: ebpf, mesh
+  priority: 11
+Micronaut:
+  id: 131
+  languages: Java
+NATS:
+  id: 132
+  languages: Java
+Impala-jdbc-driver:
+  id: 133
+  languages: Java
+Impala:
+  id: 134
+  languages: Java
+EventMesh:
+  id: 135
+  languages: Java
+eventmesh-producer:
+  id: 136
+  languages: Java
+eventmesh-consumer:
+  id: 137
+  languages: Java
+AWSDynamoDB:
+  id: 138
+  languages: Java,C#,Node.js,Python
+AWSSNS:
+  id: 139
+  languages: Java,C#,Node.js,Python
+AWSSQS:
+  id: 140
+  languages: Java,C#,Node.js,Python
+Micrometer:
+  id: 141
+  languages: Java
+mtls:
+  id: 142
+  languages: ebpf, mesh
+  priority: 12
+amqp:
+  id: 143
+  languages: PHP,Golang
+  priority: 45
+amqp-producer:
+  id: 144
+  languages: PHP,Golang
+amqp-consumer:
+  id: 145
+  languages: PHP,Golang
+Jersey:
+  id: 146
+  languages: Java
+Grizzly:
+  id: 147
+  languages: Java
+WebSphere:
+  id: 148
+  languages: Java
+Aerospike:
+  id: 149
+  languages: Java
+Nacos:
+  id: 150
+  languages: Java
+Netty-http:
+  id: 151
+  languages: Java
+c3p0:
+  id: 152
+  languages: Java
+Derby-jdbc-driver:
+  id: 153
+  languages: Java
+Sqlite-jdbc-driver:
+  id: 154
+  languages: Java
+Db2-jdbc-driver:
+  id: 155
+  languages: Java
+Sybase-jdbc-driver:
+  id: 156
+  languages: Java
+OceanBase-jdbc-driver:
+  id: 157
   languages: Java
 
 # .NET/.NET Core components
@@ -466,6 +576,9 @@ SmartSql:
   languages: C#
 FreeSql:
   id: 3017
+  languages: C#
+FreeRedis:
+  id: 3018
   languages: C#
 
 # NoeJS components
@@ -527,6 +640,30 @@ GoMysql:
 OpenFunction:
   id: 5013
   languages: Golang,Node.js,Python,Java
+GoRedis:
+  id: 5014
+  languages: Golang
+Echo:
+  id: 5015
+  language: Golang
+Lock:
+  id: 5016
+  language: Golang,Node.js,Python,java
+GoMuxServer:
+  id: 5017
+  language: Golang
+Iris:
+  id: 5018
+  language: Golang
+GoFastHttpClient:
+  id: 5019
+  language: Golang
+GoFastHttpServer:
+  id: 5020
+  language: Golang
+Fiber:
+  id: 5021
+  language: Golang
 
 # Lua components
 # [6000, 7000) for Lua agent
@@ -585,6 +722,21 @@ MysqlClient:
   languages: Python
 FastAPI:
   id: 7014
+  languages: Python
+Bottle:
+  id: 7015
+  languages: Python
+AsyncPG:
+  id: 7016
+  languages: Python
+AIORedis:
+  id: 7017
+  languages: Python
+Websockets:
+  id: 7018
+  languages: Python
+HTTPX:
+  id: 7019
   languages: Python
 
 # PHP components
@@ -648,6 +800,7 @@ Component-Server-Mappings:
   h2-jdbc-driver: H2
   mysql-connector-java: Mysql
   Jedis: Redis
+  FreeRedis: Redis
   StackExchange.Redis: Redis
   Redisson: Redis
   Lettuce: Redis
@@ -678,3 +831,11 @@ Component-Server-Mappings:
   ClickHouse-jdbc-driver: ClickHouse
   Apache-Kylin-jdbc-driver: Apache-Kylin
   MysqlClient: Mysql
+  AsyncPG: PostgreSQL
+  AIORedis: Redis
+  Impala-jdbc-driver: Impala
+  eventmesh-producer: EventMesh
+  eventmesh-consumer: EventMesh
+  amqp-producer: amqp
+  amqp-consumer: amqp
+  GoRedis: Redis

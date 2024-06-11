@@ -18,23 +18,26 @@
 
 package org.apache.skywalking.oap.server.core.analysis.manual.log;
 
-import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.skywalking.oap.server.core.UnexpectedException;
 import org.apache.skywalking.oap.server.core.analysis.manual.searchtag.Tag;
+import org.apache.skywalking.oap.server.core.analysis.record.LongText;
 import org.apache.skywalking.oap.server.core.analysis.record.Record;
 import org.apache.skywalking.oap.server.core.query.type.ContentType;
-import org.apache.skywalking.oap.server.core.storage.annotation.BanyanDBGlobalIndex;
-import org.apache.skywalking.oap.server.core.storage.annotation.BanyanDBShardingKey;
+import org.apache.skywalking.oap.server.core.storage.StorageID;
+import org.apache.skywalking.oap.server.core.storage.annotation.BanyanDB;
 import org.apache.skywalking.oap.server.core.storage.annotation.Column;
-import org.apache.skywalking.oap.server.core.storage.annotation.ElasticSearchMatchQuery;
+import org.apache.skywalking.oap.server.core.storage.annotation.ElasticSearch;
+import org.apache.skywalking.oap.server.core.storage.annotation.SQLDatabase;
 import org.apache.skywalking.oap.server.core.storage.type.Convert2Entity;
 import org.apache.skywalking.oap.server.core.storage.type.Convert2Storage;
 import org.apache.skywalking.oap.server.core.storage.type.StorageBuilder;
 
-public abstract class AbstractLogRecord extends Record {
+import java.util.List;
 
+public abstract class AbstractLogRecord extends Record {
+    public static final String ADDITIONAL_TAG_TABLE = "log_tag";
     public static final String SERVICE_ID = "service_id";
     public static final String SERVICE_INSTANCE_ID = "service_instance_id";
     public static final String ENDPOINT_ID = "endpoint_id";
@@ -49,44 +52,44 @@ public abstract class AbstractLogRecord extends Record {
 
     @Setter
     @Getter
-    @Column(columnName = SERVICE_ID)
-    @BanyanDBShardingKey(index = 0)
+    @Column(name = SERVICE_ID)
+    @BanyanDB.SeriesID(index = 0)
+    @SQLDatabase.AdditionalEntity(additionalTables = {ADDITIONAL_TAG_TABLE}, reserveOriginalColumns = true)
     private String serviceId;
     @Setter
     @Getter
-    @Column(columnName = SERVICE_INSTANCE_ID)
-    @BanyanDBShardingKey(index = 1)
+    @Column(name = SERVICE_INSTANCE_ID, length = 512)
+    @BanyanDB.SeriesID(index = 1)
     private String serviceInstanceId;
     @Setter
     @Getter
-    @Column(columnName = ENDPOINT_ID)
+    @Column(name = ENDPOINT_ID, length = 512)
     private String endpointId;
     @Setter
     @Getter
-    @Column(columnName = TRACE_ID, length = 150)
-    @BanyanDBGlobalIndex(extraFields = {})
+    @Column(name = TRACE_ID, length = 150)
     private String traceId;
     @Setter
     @Getter
-    @Column(columnName = TRACE_SEGMENT_ID, length = 150)
-    @BanyanDBGlobalIndex(extraFields = {SPAN_ID})
+    @Column(name = TRACE_SEGMENT_ID, length = 150)
     private String traceSegmentId;
     @Setter
     @Getter
-    @Column(columnName = SPAN_ID)
+    @Column(name = SPAN_ID)
+    @BanyanDB.NoIndexing
     private int spanId;
     @Setter
     @Getter
-    @Column(columnName = CONTENT_TYPE, storageOnly = true)
+    @Column(name = CONTENT_TYPE, storageOnly = true)
     private int contentType = ContentType.NONE.value();
     @Setter
     @Getter
-    @Column(columnName = CONTENT, length = 1_000_000)
-    @ElasticSearchMatchQuery(analyzer = ElasticSearchMatchQuery.AnalyzerType.OAP_LOG_ANALYZER)
-    private String content;
+    @Column(name = CONTENT, length = 1_000_000)
+    @ElasticSearch.MatchQuery(analyzer = ElasticSearch.MatchQuery.AnalyzerType.OAP_LOG_ANALYZER)
+    private LongText content;
     @Setter
     @Getter
-    @Column(columnName = TIMESTAMP)
+    @Column(name = TIMESTAMP)
     private long timestamp;
 
     /**
@@ -94,23 +97,16 @@ public abstract class AbstractLogRecord extends Record {
      */
     @Setter
     @Getter
-    @Column(columnName = TAGS_RAW_DATA, storageOnly = true)
+    @Column(name = TAGS_RAW_DATA, storageOnly = true)
     private byte[] tagsRawData;
     @Setter
     @Getter
-    @Column(columnName = TAGS, indexOnly = true)
+    @Column(name = TAGS, indexOnly = true, length = Tag.TAG_LENGTH)
+    @SQLDatabase.AdditionalEntity(additionalTables = {ADDITIONAL_TAG_TABLE})
     private List<String> tagsInString;
 
-    /**
-     * tags is a duplicate field of {@link #tagsInString}. Some storage don't support array values in a single column.
-     * Then, those implementations could use this raw data to generate necessary data structures.
-     */
-    @Setter
-    @Getter
-    private List<Tag> tags;
-
     @Override
-    public String id() {
+    public StorageID id() {
         throw new UnexpectedException("AbstractLogRecord doesn't provide id()");
     }
 
@@ -123,7 +119,7 @@ public abstract class AbstractLogRecord extends Record {
             record.setTraceSegmentId((String) converter.get(TRACE_SEGMENT_ID));
             record.setSpanId(((Number) converter.get(SPAN_ID)).intValue());
             record.setContentType(((Number) converter.get(CONTENT_TYPE)).intValue());
-            record.setContent((String) converter.get(CONTENT));
+            record.setContent(new LongText((String) converter.get(CONTENT)));
             record.setTimestamp(((Number) converter.get(TIMESTAMP)).longValue());
             record.setTagsRawData(converter.getBytes(TAGS_RAW_DATA));
             record.setTimeBucket(((Number) converter.get(TIME_BUCKET)).longValue());

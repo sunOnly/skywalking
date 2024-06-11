@@ -19,7 +19,9 @@
 package org.apache.skywalking.oap.server.core.storage;
 
 import org.apache.skywalking.oap.server.core.storage.cache.INetworkAddressAliasDAO;
+import org.apache.skywalking.oap.server.core.storage.management.UIMenuManagementDAO;
 import org.apache.skywalking.oap.server.core.storage.management.UITemplateManagementDAO;
+import org.apache.skywalking.oap.server.core.storage.profiling.continuous.IContinuousProfilingPolicyDAO;
 import org.apache.skywalking.oap.server.core.storage.profiling.ebpf.IServiceLabelDAO;
 import org.apache.skywalking.oap.server.core.storage.profiling.trace.IProfileTaskLogQueryDAO;
 import org.apache.skywalking.oap.server.core.storage.profiling.trace.IProfileTaskQueryDAO;
@@ -31,13 +33,16 @@ import org.apache.skywalking.oap.server.core.storage.profiling.ebpf.IEBPFProfili
 import org.apache.skywalking.oap.server.core.storage.profiling.ebpf.IEBPFProfilingScheduleDAO;
 import org.apache.skywalking.oap.server.core.storage.profiling.ebpf.IEBPFProfilingTaskDAO;
 import org.apache.skywalking.oap.server.core.storage.query.IEventQueryDAO;
+import org.apache.skywalking.oap.server.core.storage.query.IHierarchyQueryDAO;
 import org.apache.skywalking.oap.server.core.storage.query.ILogQueryDAO;
 import org.apache.skywalking.oap.server.core.storage.query.IMetadataQueryDAO;
 import org.apache.skywalking.oap.server.core.storage.query.IMetricsQueryDAO;
+import org.apache.skywalking.oap.server.core.storage.query.ISpanAttachedEventQueryDAO;
 import org.apache.skywalking.oap.server.core.storage.query.ITagAutoCompleteQueryDAO;
-import org.apache.skywalking.oap.server.core.storage.query.ITopNRecordsQueryDAO;
+import org.apache.skywalking.oap.server.core.storage.query.IRecordsQueryDAO;
 import org.apache.skywalking.oap.server.core.storage.query.ITopologyQueryDAO;
 import org.apache.skywalking.oap.server.core.storage.query.ITraceQueryDAO;
+import org.apache.skywalking.oap.server.core.storage.query.IZipkinQueryDAO;
 import org.apache.skywalking.oap.server.library.module.ModuleDefine;
 
 /**
@@ -66,19 +71,24 @@ public class StorageModule extends ModuleDefine {
             IMetadataQueryDAO.class,
             IAggregationQueryDAO.class,
             IAlarmQueryDAO.class,
-            ITopNRecordsQueryDAO.class,
+            IRecordsQueryDAO.class,
             ILogQueryDAO.class,
             IProfileTaskQueryDAO.class,
             IProfileTaskLogQueryDAO.class,
             IProfileThreadSnapshotQueryDAO.class,
             UITemplateManagementDAO.class,
+            UIMenuManagementDAO.class,
             IBrowserLogQueryDAO.class,
             IEventQueryDAO.class,
             IEBPFProfilingTaskDAO.class,
             IEBPFProfilingScheduleDAO.class,
             IEBPFProfilingDataDAO.class,
+            IContinuousProfilingPolicyDAO.class,
             IServiceLabelDAO.class,
-            ITagAutoCompleteQueryDAO.class
+            ITagAutoCompleteQueryDAO.class,
+            IZipkinQueryDAO.class,
+            ISpanAttachedEventQueryDAO.class,
+            IHierarchyQueryDAO.class
         };
     }
 }

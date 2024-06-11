@@ -20,7 +20,7 @@ Single configs in Consul are key/value pairs:
 
 | Key | Value |
 |-----|-----|
-| configKey | configVaule |
+| configKey | configValue |
 
 e.g. The config is:
 ```
@@ -35,7 +35,7 @@ The config in Consul is:
 
 
 ### Group Config
-Group config in Consul are key/value pairs as well, but  according to the level keys organized by `/`, see: https://www.consul.io/docs/dynamic-app-config/kv#using-consul-kv
+Group config in Consul are key/value pairs as well, but  according to the level keys organized by `/`.
 
 | Key | Value |
 |-----|-----|

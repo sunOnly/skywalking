@@ -14,7 +14,7 @@ SkyWalking's backend distribution package consists of the following parts:
 
 ## Requirements and default settings
 
-Requirement: **JDK8 to JDK17 are tested**. Other versions are not tested and may or may not work.
+Requirement: **Java 11/17/21**. 
 
 Before you begin, you should understand that the main purpose of the following quickstart is to help you obtain a basic configuration for previews/demos. Performance and long-term running are **NOT** among the purposes of the quickstart.
 
@@ -39,14 +39,70 @@ Before deploying Skywalking in your distributed environment, you should learn ab
 
 
 ## Startup script
-The default startup scripts are `/bin/oapService.sh`(.bat). 
+The default startup scripts are `/bin/oapService.sh`(.bat).
 Read the [start up mode](backend-start-up-mode.md) document to learn other ways to start up the backend.
 
 
+### Key Parameters In The Booting Logs
+After the OAP booting process completed, you should be able to see all important parameters listed in the logs.
+
+```
+2023-11-06 21:10:45,988 org.apache.skywalking.oap.server.starter.OAPServerBootstrap 67 [main] INFO  [] - The key booting parameters of Apache SkyWalking OAP are listed as following.
+
+Running Mode                               |   null                  
+TTL.metrics                                |   7                     
+TTL.record                                 |   3                     
+Version                                    |   9.7.0-SNAPSHOT-92af797
+module.agent-analyzer.provider             |   default               
+module.ai-pipeline.provider                |   default               
+module.alarm.provider                      |   default               
+module.aws-firehose.provider               |   default               
+module.cluster.provider                    |   standalone            
+module.configuration-discovery.provider    |   default               
+module.configuration.provider              |   none                  
+module.core.provider                       |   default               
+module.envoy-metric.provider               |   default               
+module.event-analyzer.provider             |   default               
+module.log-analyzer.provider               |   default               
+module.logql.provider                      |   default               
+module.promql.provider                     |   default               
+module.query.provider                      |   graphql               
+module.receiver-browser.provider           |   default               
+module.receiver-clr.provider               |   default               
+module.receiver-ebpf.provider              |   default               
+module.receiver-event.provider             |   default               
+module.receiver-jvm.provider               |   default               
+module.receiver-log.provider               |   default               
+module.receiver-meter.provider             |   default               
+module.receiver-otel.provider              |   default               
+module.receiver-profile.provider           |   default               
+module.receiver-register.provider          |   default               
+module.receiver-sharing-server.provider    |   default               
+module.receiver-telegraf.provider          |   default               
+module.receiver-trace.provider             |   default               
+module.service-mesh.provider               |   default               
+module.storage.provider                    |   h2                    
+module.telemetry.provider                  |   none                  
+oap.external.grpc.host                     |   0.0.0.0               
+oap.external.grpc.port                     |   11800                 
+oap.external.http.host                     |   0.0.0.0               
+oap.external.http.port                     |   12800                  
+oap.internal.comm.host                     |   0.0.0.0               
+oap.internal.comm.port                     |   11800       
+```
+
+- `oap.external.grpc.host`:`oap.external.grpc.port` is for reporting telemetry data through gRPC channel, including
+  native agents, OTEL.
+- `oap.external.http.host`:`oap.external.http.port` is for reporting telemetry data through HTTP channel and query,
+  including native GraphQL(UI), PromQL, LogQL.
+- `oap.internal.comm.host`:`oap.internal.comm.port` is for OAP cluster internal communication via gRPC/HTTP2 protocol.
+  The default host(`0.0.0.0`) is not suitable for the cluster mode, unless in k8s deployment. Please
+  read [Cluster Doc](backend-cluster.md) to understand how to set up the SkyWalking backend in the cluster mode.
+  
 ## application.yml
 SkyWalking backend startup behaviours are driven by `config/application.yml`. Understanding the settings file will help you read this document.
 
-The core concept behind this setting file is that the SkyWalking collector is based on a pure modular design. 
+The core concept behind this setting file is that the SkyWalking collector is based on a pure modular design.
 End-users can switch or assemble the collector features according to their unique requirements.
 
 In `application.yml`, there are three levels.
@@ -60,13 +116,13 @@ Example:
 storage:
   selector: mysql # the mysql storage will actually be activated, while the h2 storage takes no effect
   h2:
-    driver: ${SW_STORAGE_H2_DRIVER:org.h2.jdbcx.JdbcDataSource}
-    url: ${SW_STORAGE_H2_URL:jdbc:h2:mem:skywalking-oap-db}
-    user: ${SW_STORAGE_H2_USER:sa}
+    properties:
+      jdbcUrl: ${SW_STORAGE_H2_URL:jdbc:h2:mem:skywalking-oap-db;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=FALSE}
+      dataSource.user: ${SW_STORAGE_H2_USER:sa}
     metadataQueryMaxSize: ${SW_STORAGE_H2_QUERY_MAX_SIZE:5000}
   mysql:
     properties:
-      jdbcUrl: ${SW_JDBC_URL:"jdbc:mysql://localhost:3306/swtest"}
+      jdbcUrl: ${SW_JDBC_URL:"jdbc:mysql://localhost:3306/swtest?allowMultiQueries=true"}
       dataSource.user: ${SW_DATA_SOURCE_USER:root}
       dataSource.password: ${SW_DATA_SOURCE_PASSWORD:root@1234}
       dataSource.cachePrepStmts: ${SW_DATA_SOURCE_CACHE_PREP_STMTS:true}
@@ -82,7 +138,7 @@ storage:
 1. **`default`** is the default implementor of the core module.
 1. `driver`, `url`, ... `metadataQueryMaxSize` are all setting items of the implementor.
 
-At the same time, there are two types of modules: required and optional. The required modules provide the skeleton of the backend. 
+At the same time, there are two types of modules: required and optional. The required modules provide the skeleton of the backend.
 Even though their modular design supports pluggability, removing those modules does not serve any purpose. For optional modules, some of them have
 a provider implementation called `none`, meaning that it only provides a shell with no actual logic, typically such as telemetry.
 Setting `-` to the `selector` means that this whole module will be excluded at runtime.
@@ -98,23 +154,12 @@ capabilities. See [**Cluster Management**](backend-cluster.md) for more details.
 
 ## FAQs
 #### Why do we need to set the timezone? And when do we do it?
-SkyWalking provides downsampling time-series metrics features. 
+SkyWalking provides downsampling time-series metrics features.
 Query and store at each time dimension (minute, hour, day, month metrics indexes)
 related to timezone when time formatting.
 
 For example, metrics time will be formatted like yyyyMMddHHmm in minute dimension metrics, which is timezone-related.
-  
+
 By default, SkyWalking's OAP backend chooses the **OS default timezone**.
 Please follow the Java and OS documents if you want to override the timezone.
 
-#### How to query the storage directly from a 3rd party tool?
-SkyWalking provides different options based on browser UI, CLI and GraphQL to support extensions. But some users may want to query data 
-directly from the storage. For example, in the case of ElasticSearch, Kibana is a great tool for doing this.
-
-By default, SkyWalking saves based64-encoded ID(s) only in metrics entities to reduce memory, network and storage space usages. 
-But these tools usually don't support nested queries and are not convenient to work with. For these exceptional reasons,
-SkyWalking provides a config to add all necessary name column(s) into the final metrics entities with ID as a trade-off.
-
-Take a look at `core/default/activeExtraModelColumns` config in the `application.yaml`, and set it as `true` to enable this feature.
-
-Note that this feature is simply for 3rd party integration and doesn't provide any new features to native SkyWalking use cases.

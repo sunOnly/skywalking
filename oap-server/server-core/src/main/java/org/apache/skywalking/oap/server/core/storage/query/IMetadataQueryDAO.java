@@ -21,7 +21,9 @@ package org.apache.skywalking.oap.server.core.storage.query;
 import java.io.IOException;
 import java.util.List;
 
+import javax.annotation.Nullable;
 import org.apache.skywalking.oap.server.core.query.enumeration.ProfilingSupportStatus;
+import org.apache.skywalking.oap.server.core.query.input.Duration;
 import org.apache.skywalking.oap.server.core.query.type.Endpoint;
 import org.apache.skywalking.oap.server.core.query.type.Process;
 import org.apache.skywalking.oap.server.core.query.type.Service;
@@ -29,28 +31,26 @@ import org.apache.skywalking.oap.server.core.query.type.ServiceInstance;
 import org.apache.skywalking.oap.server.core.storage.DAO;
 
 public interface IMetadataQueryDAO extends DAO {
-    /**
-     * @param layer layer name for filtering
-     * @param group group name for filtering
-     * @return list of the all available services
-     */
-    List<Service> listServices(final String layer, final String group) throws IOException;
 
     /**
-     * Service could have more than one record by a different layer and have the same serviceId.
+     * List all existing services.
      */
-    List<Service> getServices(final String serviceId) throws IOException;
+    List<Service> listServices() throws IOException;
 
     /**
-     * @param startTimestamp The instance is required to be live after this timestamp
-     * @param endTimestamp   The instance is required to be live before this timestamp.
+     * @param duration   The instance is required to be live in this duration, could be null.
      * @param serviceId      the owner of the instances.
      * @return list of instances matching the given conditions.
      */
-    List<ServiceInstance> listInstances(final long startTimestamp, final long endTimestamp,
+    List<ServiceInstance> listInstances(@Nullable final Duration duration,
                                         final String serviceId) throws IOException;
 
     ServiceInstance getInstance(final String instanceId) throws IOException;
+
+    /**
+     * @param instanceIds instance id list
+     */
+    List<ServiceInstance> getInstances(final List<String> instanceIds) throws IOException;
 
     /**
      * @param keyword   to filter the endpoints
@@ -61,25 +61,39 @@ public interface IMetadataQueryDAO extends DAO {
     List<Endpoint> findEndpoint(final String keyword, final String serviceId, final int limit) throws IOException;
 
     /**
-     * @param serviceId the service of the processes.
-     * @param instanceId the service instance of the process.
-     * @param agentId the agent id which reports the process.
-     * @return list of processes matching the given conditions.
+     * @param serviceId the service id of the process.
+     * @param supportStatus the profiling status of the process.
+     * @param lastPingStartTimeBucket the start time bucket of last ping.
+     * @param lastPingEndTimeBucket the end time bucket of last ping.
      */
-    List<Process> listProcesses(final String serviceId, final String instanceId, final String agentId,
-                                final ProfilingSupportStatus profilingSupportStatus, final long lastPingStartTimeBucket,
-                                final long lastPingEndTimeBucket) throws IOException;
+    List<Process> listProcesses(final String serviceId, final ProfilingSupportStatus supportStatus,
+                                final long lastPingStartTimeBucket, final long lastPingEndTimeBucket) throws IOException;
 
     /**
-     * get the count of processes
-     * @param serviceId the service of the processes.
-     * @param instanceId the service instance of the process.
-     * @param agentId the agent id which reports the process.
-     * @return the size of processes
+     * @param serviceInstanceId the instance id of the process.
+     * @param duration the start and end time bucket of last ping.
      */
-    long getProcessesCount(final String serviceId, final String instanceId, final String agentId,
-                           final ProfilingSupportStatus profilingSupportStatus, final long lastPingStartTimeBucket,
-                           final long lastPingEndTimeBucket) throws IOException;
+    List<Process> listProcesses(final String serviceInstanceId, final Duration duration, boolean includeVirtual) throws IOException;
+
+    /**
+     * @param agentId the agent id of the process.
+     */
+    List<Process> listProcesses(final String agentId) throws IOException;
+
+    /**
+     * @param serviceId the service id of the process
+     * @param profilingSupportStatus the profiling status of the process.
+     * @param lastPingStartTimeBucket the start time bucket of last ping.
+     * @param lastPingEndTimeBucket the end time bucket of last ping.
+     */
+    long getProcessCount(final String serviceId,
+                         final ProfilingSupportStatus profilingSupportStatus, final long lastPingStartTimeBucket,
+                         final long lastPingEndTimeBucket) throws IOException;
+
+    /**
+     * @param instanceId the service instance id of the process
+     */
+    long getProcessCount(final String instanceId) throws IOException;
 
     /**
      * @param processId the id of the process.

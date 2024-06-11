@@ -20,15 +20,14 @@ package org.apache.skywalking.oap.server.receiver.sharing.server;
 
 import java.util.Objects;
 import org.apache.logging.log4j.util.Strings;
-import org.apache.skywalking.oap.server.library.util.StringUtil;
 import org.apache.skywalking.oap.server.core.CoreModule;
+import org.apache.skywalking.oap.server.core.RunningMode;
 import org.apache.skywalking.oap.server.core.remote.health.HealthCheckServiceHandler;
 import org.apache.skywalking.oap.server.core.server.GRPCHandlerRegister;
 import org.apache.skywalking.oap.server.core.server.GRPCHandlerRegisterImpl;
 import org.apache.skywalking.oap.server.core.server.HTTPHandlerRegister;
 import org.apache.skywalking.oap.server.core.server.HTTPHandlerRegisterImpl;
 import org.apache.skywalking.oap.server.core.server.auth.AuthenticationInterceptor;
-import org.apache.skywalking.oap.server.library.module.ModuleConfig;
 import org.apache.skywalking.oap.server.library.module.ModuleDefine;
 import org.apache.skywalking.oap.server.library.module.ModuleProvider;
 import org.apache.skywalking.oap.server.library.module.ModuleStartException;
@@ -36,20 +35,16 @@ import org.apache.skywalking.oap.server.library.server.ServerException;
 import org.apache.skywalking.oap.server.library.server.grpc.GRPCServer;
 import org.apache.skywalking.oap.server.library.server.http.HTTPServer;
 import org.apache.skywalking.oap.server.library.server.http.HTTPServerConfig;
+import org.apache.skywalking.oap.server.library.util.StringUtil;
 
 public class SharingServerModuleProvider extends ModuleProvider {
 
-    private final SharingServerConfig config;
+    private SharingServerConfig config;
     private GRPCServer grpcServer;
     private HTTPServer httpServer;
     private ReceiverGRPCHandlerRegister receiverGRPCHandlerRegister;
     private ReceiverHTTPHandlerRegister receiverHTTPHandlerRegister;
     private AuthenticationInterceptor authenticationInterceptor;
-
-    public SharingServerModuleProvider() {
-        super();
-        this.config = new SharingServerConfig();
-    }
 
     @Override
     public String name() {
@@ -62,8 +57,18 @@ public class SharingServerModuleProvider extends ModuleProvider {
     }
 
     @Override
-    public ModuleConfig createConfigBeanIfAbsent() {
-        return config;
+    public ConfigCreator newConfigCreator() {
+        return new ConfigCreator<SharingServerConfig>() {
+            @Override
+            public Class type() {
+                return SharingServerConfig.class;
+            }
+
+            @Override
+            public void onInitialized(final SharingServerConfig initialized) {
+                config = initialized;
+            }
+        };
     }
 
     @Override
@@ -81,6 +86,9 @@ public class SharingServerModuleProvider extends ModuleProvider {
             httpServerConfig.setPort(config.getRestPort());
             httpServerConfig.setContextPath(config.getRestContextPath());
 
+            setBootingParameter("oap.external.http.host", config.getRestHost());
+            setBootingParameter("oap.external.http.port", config.getRestPort());
+
             httpServer = new HTTPServer(httpServerConfig);
             httpServer.initialize();
 
@@ -94,7 +102,7 @@ public class SharingServerModuleProvider extends ModuleProvider {
             authenticationInterceptor = new AuthenticationInterceptor(config.getAuthentication());
         }
 
-        if (config.getGRPCPort() != 0) {
+        if (config.getGRPCPort() != 0 && !RunningMode.isInitMode()) {
             if (config.isGRPCSslEnabled()) {
                 grpcServer = new GRPCServer(
                     Strings.isBlank(config.getGRPCHost()) ? "0.0.0.0" : config.getGRPCHost(),
@@ -109,14 +117,13 @@ public class SharingServerModuleProvider extends ModuleProvider {
                     config.getGRPCPort()
                 );
             }
+            setBootingParameter("oap.external.grpc.host", config.getGRPCHost());
+            setBootingParameter("oap.external.grpc.port", config.getGRPCPort());
             if (config.getMaxMessageSize() > 0) {
                 grpcServer.setMaxMessageSize(config.getMaxMessageSize());
             }
             if (config.getMaxConcurrentCallsPerConnection() > 0) {
                 grpcServer.setMaxConcurrentCallsPerConnection(config.getMaxConcurrentCallsPerConnection());
-            }
-            if (config.getGRPCThreadPoolQueueSize() > 0) {
-                grpcServer.setThreadPoolQueueSize(config.getGRPCThreadPoolQueueSize());
             }
             if (config.getGRPCThreadPoolSize() > 0) {
                 grpcServer.setThreadPoolSize(config.getGRPCThreadPoolSize());
@@ -158,10 +165,10 @@ public class SharingServerModuleProvider extends ModuleProvider {
     @Override
     public void notifyAfterCompleted() throws ModuleStartException {
         try {
-            if (Objects.nonNull(grpcServer)) {
+            if (Objects.nonNull(grpcServer) && !RunningMode.isInitMode()) {
                 grpcServer.start();
             }
-            if (Objects.nonNull(httpServer)) {
+            if (Objects.nonNull(httpServer) && !RunningMode.isInitMode()) {
                 httpServer.start();
             }
         } catch (ServerException e) {

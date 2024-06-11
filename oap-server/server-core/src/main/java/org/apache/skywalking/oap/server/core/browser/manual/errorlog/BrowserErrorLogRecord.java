@@ -23,7 +23,8 @@ import org.apache.skywalking.oap.server.core.analysis.Stream;
 import org.apache.skywalking.oap.server.core.analysis.record.Record;
 import org.apache.skywalking.oap.server.core.analysis.worker.RecordStreamProcessor;
 import org.apache.skywalking.oap.server.core.source.DefaultScopeDefine;
-import org.apache.skywalking.oap.server.core.storage.annotation.BanyanDBShardingKey;
+import org.apache.skywalking.oap.server.core.storage.StorageID;
+import org.apache.skywalking.oap.server.core.storage.annotation.BanyanDB;
 import org.apache.skywalking.oap.server.core.storage.annotation.Column;
 import org.apache.skywalking.oap.server.core.storage.annotation.SuperDataset;
 import org.apache.skywalking.oap.server.core.storage.type.Convert2Entity;
@@ -32,6 +33,7 @@ import org.apache.skywalking.oap.server.core.storage.type.StorageBuilder;
 
 @SuperDataset
 @Stream(name = BrowserErrorLogRecord.INDEX_NAME, scopeId = DefaultScopeDefine.BROWSER_ERROR_LOG, builder = BrowserErrorLogRecord.Builder.class, processor = RecordStreamProcessor.class)
+@BanyanDB.TimestampColumn(BrowserErrorLogRecord.TIMESTAMP)
 public class BrowserErrorLogRecord extends Record {
     public static final String INDEX_NAME = "browser_error_log";
     public static final String UNIQUE_ID = "unique_id";
@@ -43,44 +45,44 @@ public class BrowserErrorLogRecord extends Record {
     public static final String DATA_BINARY = "data_binary";
 
     @Override
-    public String id() {
-        return uniqueId;
+    public StorageID id() {
+        return new StorageID().append(UNIQUE_ID, uniqueId);
     }
 
     @Setter
     @Getter
-    @Column(columnName = UNIQUE_ID)
+    @Column(name = UNIQUE_ID)
     private String uniqueId;
 
     @Setter
     @Getter
-    @Column(columnName = SERVICE_ID)
-    @BanyanDBShardingKey(index = 0)
+    @Column(name = SERVICE_ID)
+    @BanyanDB.SeriesID(index = 0)
     private String serviceId;
 
     @Setter
     @Getter
-    @Column(columnName = SERVICE_VERSION_ID)
+    @Column(name = SERVICE_VERSION_ID, length = 512)
     private String serviceVersionId;
 
     @Setter
     @Getter
-    @Column(columnName = PAGE_PATH_ID)
+    @Column(name = PAGE_PATH_ID, length = 512)
     private String pagePathId;
 
     @Setter
     @Getter
-    @Column(columnName = TIMESTAMP)
+    @Column(name = TIMESTAMP)
     private long timestamp;
 
     @Setter
     @Getter
-    @Column(columnName = ERROR_CATEGORY)
+    @Column(name = ERROR_CATEGORY)
     private int errorCategory;
 
     @Setter
     @Getter
-    @Column(columnName = DATA_BINARY)
+    @Column(name = DATA_BINARY)
     private byte[] dataBinary;
 
     public static class Builder implements StorageBuilder<BrowserErrorLogRecord> {

@@ -21,7 +21,7 @@
     <parent>
         <artifactId>apm</artifactId>
         <groupId>org.apache.skywalking</groupId>
-        <version>9.1.0-SNAPSHOT</version>
+        <version>10.1.0-SNAPSHOT</version>
     </parent>
     <packaging>pom</packaging>
     <modelVersion>4.0.0</modelVersion>
@@ -31,52 +31,53 @@
         <slf4j.version>1.7.30</slf4j.version>
         <log4j.version>2.17.1</log4j.version>
         <google.error_prone_annotations>2.11.0</google.error_prone_annotations>
-        <graphql-java-tools.version>12.0.2</graphql-java-tools.version>
-        <graphql-java.version>17.3</graphql-java.version>
-        <graphql-java-extended-scalars.version>17.0</graphql-java-extended-scalars.version>
+        <graphql-java-tools.version>13.0.1</graphql-java-tools.version>
+        <graphql-java.version>21.0</graphql-java.version>
+        <graphql-java-extended-scalars.version>18.1</graphql-java-extended-scalars.version>
         <okhttp.version>3.14.9</okhttp.version>
         <httpclient.version>4.5.13</httpclient.version>
         <h2.version>2.1.212</h2.version>
         <joda-time.version>2.10.5</joda-time.version>
         <zookeeper.version>3.5.7</zookeeper.version>
-        <guava.version>31.1-jre</guava.version>
-        <snakeyaml.version>1.28</snakeyaml.version>
-        <protobuf-java.version>3.19.4</protobuf-java.version>
-        <protobuf-java-util.version>3.19.4</protobuf-java-util.version>
+        <guava.version>32.0.1-jre</guava.version>
+        <snakeyaml.version>2.0</snakeyaml.version>
+        <protobuf-java.version>3.25.1</protobuf-java.version>
+        <protobuf-java-util.version>3.25.1</protobuf-java-util.version>
         <commons-codec.version>1.11</commons-codec.version>
         <commons-lang3.version>3.12.0</commons-lang3.version>
         <commons-io.version>2.7</commons-io.version>
-        <kubernetes.version>14.0.0</kubernetes.version>
-        <hikaricp.version>3.1.0</hikaricp.version>
-        <zipkin.version>2.23.16</zipkin.version>
-        <jackson-core.version>2.13.2</jackson-core.version>
-        <jackson-annotations.version>2.13.2</jackson-annotations.version>
-        <jackson-databind.version>2.13.2.2</jackson-databind.version>
         <commons-text.version>1.4</commons-text.version>
+        <kubernetes.version>6.7.1</kubernetes.version>
+        <hikaricp.version>3.1.0</hikaricp.version>
+        <zipkin.version>2.24.1</zipkin.version>
+        <jackson.version>2.16.0</jackson.version>
+        <jackson-databind.version>2.16.0</jackson-databind.version>
         <simpleclient.version>0.6.0</simpleclient.version>
         <apollo.version>1.8.0</apollo.version>
         <nacos.version>1.4.2</nacos.version>
         <curator.version>4.3.0</curator.version>
         <curator-test.version>2.12.0</curator-test.version>
         <etcd4j.version>2.18.0</etcd4j.version>
-        <jackson-module-afterburner.version>2.12.2</jackson-module-afterburner.version>
-        <antlr.version>4.9.2</antlr.version>
         <freemarker.version>2.3.31</freemarker.version>
         <javaassist.version>3.25.0-GA</javaassist.version>
         <vavr.version>0.10.3</vavr.version>
-        <groovy.version>3.0.8</groovy.version>
+        <groovy.version>4.0.15</groovy.version>
         <mvel.version>2.4.8.Final</mvel.version>
         <commons-beanutils.version>1.9.4</commons-beanutils.version>
         <flatbuffers-java.version>1.12.0</flatbuffers-java.version>
-        <postgresql.version>42.3.3</postgresql.version>
-        <jetcd.version>0.5.3</jetcd.version>
-        <testcontainers.version>1.15.3</testcontainers.version>
-        <armeria.version>1.14.1</armeria.version>
+        <postgresql.version>42.4.4</postgresql.version>
+        <jetcd.version>0.6.1</jetcd.version>
+        <testcontainers.version>1.17.6</testcontainers.version>
+        <armeria.version>1.27.3</armeria.version>
         <awaitility.version>3.0.0</awaitility.version>
         <httpcore.version>4.4.13</httpcore.version>
         <commons-compress.version>1.21</commons-compress.version>
-        <iotdb-session.version>0.12.5</iotdb-session.version>
-        <lz4-java.version>1.6.0</lz4-java.version>
+        <banyandb-java-client.version>0.6.0</banyandb-java-client.version>
+        <kafka-clients.version>3.4.0</kafka-clients.version>
+        <spring-kafka-test.version>2.4.6.RELEASE</spring-kafka-test.version>
+        <consul.client.version>1.5.3</consul.client.version>
+        <commons-net.version>3.9.0</commons-net.version>
+        <maven-core.version>3.9.0</maven-core.version>
     </properties>
 
     <dependencyManagement>
@@ -289,11 +290,26 @@
                 <artifactId>commons-io</artifactId>
                 <version>${commons-io.version}</version>
             </dependency>
+
             <dependency>
-                <groupId>io.kubernetes</groupId>
-                <artifactId>client-java</artifactId>
+                <groupId>io.fabric8</groupId>
+                <artifactId>kubernetes-client-bom</artifactId>
                 <version>${kubernetes.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
             </dependency>
+            <dependency>
+                <groupId>io.fabric8</groupId>
+                <artifactId>kubernetes-client</artifactId>
+                <version>${kubernetes.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>io.fabric8</groupId>
+                        <artifactId>kubernetes-httpclient-okhttp</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
             <dependency>
                 <groupId>com.zaxxer</groupId>
                 <artifactId>HikariCP</artifactId>
@@ -305,16 +321,22 @@
                 <artifactId>zipkin</artifactId>
                 <version>${zipkin.version}</version>
             </dependency>
+            <!-- SkyWalking Web UI -->
+            <dependency>
+                <groupId>io.zipkin</groupId>
+                <artifactId>zipkin-lens</artifactId>
+                <version>${zipkin.version}</version>
+            </dependency>
             <!-- -->
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-core</artifactId>
-                <version>${jackson-core.version}</version>
+                <version>${jackson.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-annotations</artifactId>
-                <version>${jackson-annotations.version}</version>
+                <version>${jackson.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
@@ -331,6 +353,12 @@
                 <artifactId>commons-lang3</artifactId>
                 <version>${commons-lang3.version}</version>
             </dependency>
+            <dependency>
+                <groupId>commons-net</groupId>
+                <artifactId>commons-net</artifactId>
+                <version>${commons-net.version}</version>
+            </dependency>
+
             <dependency>
                 <groupId>io.prometheus</groupId>
                 <artifactId>simpleclient</artifactId>
@@ -376,15 +404,36 @@
                         <groupId>org.slf4j</groupId>
                         <artifactId>slf4j-api</artifactId>
                     </exclusion>
+                    <exclusion>
+                        <groupId>com.github.spotbugs</groupId>
+                        <artifactId>spotbugs-annotations</artifactId>
+                    </exclusion>
                 </exclusions>
             </dependency>
 
             <dependency>
-                <groupId>com.fasterxml.jackson.module</groupId>
-                <artifactId>jackson-module-afterburner</artifactId>
-                <version>${jackson-module-afterburner.version}</version>
+                <groupId>org.apache.skywalking</groupId>
+                <artifactId>banyandb-java-client</artifactId>
+                <version>${banyandb-java-client.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>io.grpc</groupId>
+                        <artifactId>grpc-netty</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>io.grpc</groupId>
+                        <artifactId>grpc-protobuf</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>io.grpc</groupId>
+                        <artifactId>grpc-stub</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>io.netty</groupId>
+                        <artifactId>netty-tcnative-boringssl-static</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
-
 
             <dependency>
                 <groupId>org.apache.curator</groupId>
@@ -423,11 +472,6 @@
             </dependency>
 
             <dependency>
-                <groupId>org.antlr</groupId>
-                <artifactId>antlr4-runtime</artifactId>
-                <version>${antlr.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>org.freemarker</groupId>
                 <artifactId>freemarker</artifactId>
                 <version>${freemarker.version}</version>
@@ -448,16 +492,10 @@
                 <version>${vavr.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.codehaus.groovy</groupId>
+                <groupId>org.apache.groovy</groupId>
                 <artifactId>groovy</artifactId>
                 <version>${groovy.version}</version>
             </dependency>
-            <dependency>
-                <groupId>org.mvel</groupId>
-                <artifactId>mvel2</artifactId>
-                <version>${mvel.version}</version>
-            </dependency>
-
             <dependency>
                 <groupId>commons-beanutils</groupId>
                 <artifactId>commons-beanutils</artifactId>
@@ -523,10 +561,34 @@
                 <artifactId>testcontainers</artifactId>
                 <version>${testcontainers.version}</version>
                 <scope>test</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>junit</groupId>
+                        <artifactId>junit</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.testcontainers</groupId>
                 <artifactId>elasticsearch</artifactId>
+                <version>${testcontainers.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>kafka</artifactId>
+                <version>${testcontainers.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>postgresql</artifactId>
+                <version>${testcontainers.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>junit-jupiter</artifactId>
                 <version>${testcontainers.version}</version>
                 <scope>test</scope>
             </dependency>
@@ -541,15 +603,53 @@
                 <artifactId>commons-compress</artifactId>
                 <version>${commons-compress.version}</version>
             </dependency>
+
             <dependency>
-                <groupId>org.apache.iotdb</groupId>
-                <artifactId>iotdb-session</artifactId>
-                <version>${iotdb-session.version}</version>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-clients</artifactId>
+                <version>${kafka-clients.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.lz4</groupId>
-                <artifactId>lz4-java</artifactId>
-                <version>${lz4-java.version}</version>
+                <groupId>org.springframework.kafka</groupId>
+                <artifactId>spring-kafka-test</artifactId>
+                <version>${spring-kafka-test.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>com.orbitz.consul</groupId>
+                <artifactId>consul-client</artifactId>
+                <version>${consul.client.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.google.guava</groupId>
+                        <artifactId>guava</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-api</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.maven</groupId>
+                <artifactId>maven-plugin-api</artifactId>
+                <version>${maven-core.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.maven</groupId>
+                <artifactId>maven-core</artifactId>
+                <version>${maven-core.version}</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.maven.plugin-tools</groupId>
+                <artifactId>maven-plugin-annotations</artifactId>
+                <version>${maven-core.version}</version>
+                <scope>provided</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>

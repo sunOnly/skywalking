@@ -19,9 +19,14 @@
 package org.apache.skywalking.oap.server.receiver.ebpf.provider.handler;
 
 import com.google.common.base.Joiner;
+import com.google.gson.Gson;
+import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
+import io.vavr.Tuple;
+import io.vavr.Tuple2;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.skywalking.apm.network.common.v3.Commands;
+import org.apache.skywalking.apm.network.ebpf.profiling.v3.EBPFOffCPUProfiling;
 import org.apache.skywalking.apm.network.ebpf.profiling.v3.EBPFOnCPUProfiling;
 import org.apache.skywalking.apm.network.ebpf.profiling.v3.EBPFProfilingServiceGrpc;
 import org.apache.skywalking.apm.network.ebpf.profiling.v3.EBPFProfilingStackMetadata;
@@ -30,8 +35,10 @@ import org.apache.skywalking.apm.network.ebpf.profiling.v3.EBPFProfilingTaskQuer
 import org.apache.skywalking.oap.server.core.CoreModule;
 import org.apache.skywalking.oap.server.core.command.CommandService;
 import org.apache.skywalking.oap.server.core.profiling.ebpf.storage.EBPFProfilingStackType;
+import org.apache.skywalking.oap.server.core.profiling.ebpf.storage.EBPFProfilingTargetType;
+import org.apache.skywalking.oap.server.core.profiling.ebpf.storage.EBPFProfilingTaskRecord;
+import org.apache.skywalking.oap.server.core.profiling.ebpf.storage.EBPFProfilingTriggerType;
 import org.apache.skywalking.oap.server.core.query.enumeration.ProfilingSupportStatus;
-import org.apache.skywalking.oap.server.core.query.type.EBPFProfilingTask;
 import org.apache.skywalking.oap.server.core.query.type.Process;
 import org.apache.skywalking.oap.server.core.source.EBPFProfilingData;
 import org.apache.skywalking.oap.server.core.source.EBPFProcessProfilingSchedule;
@@ -42,15 +49,17 @@ import org.apache.skywalking.oap.server.core.storage.query.IMetadataQueryDAO;
 import org.apache.skywalking.oap.server.library.module.ModuleManager;
 import org.apache.skywalking.oap.server.library.server.grpc.GRPCHandler;
 import org.apache.skywalking.oap.server.library.util.CollectionUtils;
+import org.apache.skywalking.oap.server.library.util.StringUtil;
 import org.apache.skywalking.oap.server.network.trace.component.command.EBPFProfilingTaskCommand;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -58,6 +67,7 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 public class EBPFProfilingServiceHandler extends EBPFProfilingServiceGrpc.EBPFProfilingServiceImplBase implements GRPCHandler {
+    private static final Gson GSON = new Gson();
     public static final List<EBPFProfilingStackType> COMMON_STACK_TYPE_ORDER = Arrays.asList(
             EBPFProfilingStackType.KERNEL_SPACE, EBPFProfilingStackType.USER_SPACE);
 
@@ -79,8 +89,7 @@ public class EBPFProfilingServiceHandler extends EBPFProfilingServiceGrpc.EBPFPr
         final long latestUpdateTime = request.getLatestUpdateTime();
         try {
             // find exists process from agent
-            final List<Process> processes = metadataQueryDAO.listProcesses(null, null, agentId,
-                    ProfilingSupportStatus.SUPPORT_EBPF_PROFILING, 0, 0);
+            final List<Process> processes = metadataQueryDAO.listProcesses(agentId);
             if (CollectionUtils.isEmpty(processes)) {
                 responseObserver.onNext(Commands.newBuilder().build());
                 responseObserver.onCompleted();
@@ -89,11 +98,12 @@ public class EBPFProfilingServiceHandler extends EBPFProfilingServiceGrpc.EBPFPr
 
             // fetch tasks from process id list
             final List<String> serviceIdList = processes.stream().map(Process::getServiceId).distinct().collect(Collectors.toList());
-            final List<EBPFProfilingTask> tasks = taskDAO.queryTasks(serviceIdList, null, 0, latestUpdateTime);
+            final List<EBPFProfilingTaskRecord> tasks = taskDAO.queryTasksByServices(serviceIdList, EBPFProfilingTriggerType.FIXED_TIME, 0, latestUpdateTime);
 
             final Commands.Builder builder = Commands.newBuilder();
-            tasks.stream().flatMap(t -> this.buildProfilingCommands(t, processes).stream())
-                    .map(EBPFProfilingTaskCommand::serialize).forEach(builder::addCommands);
+            tasks.stream().collect(Collectors.toMap(EBPFProfilingTaskRecord::getLogicalId, Function.identity(), EBPFProfilingTaskRecord::combine))
+                .values().stream().flatMap(t -> this.buildProfilingCommands(t, processes).stream())
+                .map(EBPFProfilingTaskCommand::serialize).forEach(builder::addCommands);
             responseObserver.onNext(builder.build());
             responseObserver.onCompleted();
             return;
@@ -104,18 +114,30 @@ public class EBPFProfilingServiceHandler extends EBPFProfilingServiceGrpc.EBPFPr
         responseObserver.onCompleted();
     }
 
-    private List<EBPFProfilingTaskCommand> buildProfilingCommands(EBPFProfilingTask task, List<Process> processes) {
+    private List<EBPFProfilingTaskCommand> buildProfilingCommands(EBPFProfilingTaskRecord task, List<Process> processes) {
+        if (EBPFProfilingTargetType.NETWORK.value() == task.getTargetType()) {
+            final List<String> processIdList = processes.stream().filter(p -> Objects.equals(p.getInstanceId(), task.getInstanceId())).map(Process::getId).collect(Collectors.toList());
+            if (CollectionUtils.isEmpty(processIdList)) {
+                return Collections.emptyList();
+            }
+            return Collections.singletonList(commandService.newEBPFProfilingTaskCommand(task, processIdList));
+        }
         final ArrayList<EBPFProfilingTaskCommand> commands = new ArrayList<>(processes.size());
         for (Process process : processes) {
-            // The service id must match between process and task
-            if (!Objects.equals(process.getServiceId(), task.getServiceId())) {
+            // The service id must match between process and task and must could profiling
+            if (!Objects.equals(process.getServiceId(), task.getServiceId())
+                || !ProfilingSupportStatus.SUPPORT_EBPF_PROFILING.name().equals(process.getProfilingSupportStatus())) {
                 continue;
             }
 
             // If the task doesn't require a label or the process match all labels in task
-            if (CollectionUtils.isEmpty(task.getProcessLabels())
-                    || process.getLabels().containsAll(task.getProcessLabels())) {
-                commands.add(commandService.newEBPFProfilingTaskCommand(task, process.getId()));
+            List<String> processLabels = Collections.emptyList();
+            if (StringUtil.isNotEmpty(task.getProcessLabelsJson())) {
+                processLabels = GSON.<List<String>>fromJson(task.getProcessLabelsJson(), ArrayList.class);
+            }
+            if (CollectionUtils.isEmpty(processLabels)
+                    || process.getLabels().containsAll(processLabels)) {
+                commands.add(commandService.newEBPFProfilingTaskCommand(task, Collections.singletonList(process.getId())));
             }
         }
         return commands;
@@ -158,6 +180,13 @@ public class EBPFProfilingServiceHandler extends EBPFProfilingServiceGrpc.EBPFPr
                             log.warn("process ON_CPU profiling data failure", e);
                         }
                         break;
+                    case OFFCPU:
+                        try {
+                            processOffCPUProfiling(data, ebpfProfilingData.getOffCPU());
+                        } catch (IOException e) {
+                            log.warn("process OFF_CPU profiling data failure", e);
+                        }
+                        break;
                     default:
                         throw new IllegalArgumentException("the profiling data not set");
                 }
@@ -167,6 +196,13 @@ public class EBPFProfilingServiceHandler extends EBPFProfilingServiceGrpc.EBPFPr
 
             @Override
             public void onError(Throwable throwable) {
+                Status status = Status.fromThrowable(throwable);
+                if (Status.CANCELLED.getCode() == status.getCode()) {
+                    if (log.isDebugEnabled()) {
+                        log.debug(throwable.getMessage(), throwable);
+                    }
+                    return;
+                }
                 log.error("Error in receiving ebpf profiling data", throwable);
             }
 
@@ -179,25 +215,40 @@ public class EBPFProfilingServiceHandler extends EBPFProfilingServiceGrpc.EBPFPr
     }
 
     private void processOnCPUProfiling(EBPFProfilingData data, EBPFOnCPUProfiling onCPU) throws IOException {
-        orderMetadataAndSetToData(data, onCPU.getStacksList(), COMMON_STACK_TYPE_ORDER);
-        data.setDumpCount(onCPU.getDumpCount());
+        Tuple2<String, List<EBPFProfilingStackMetadata>> order = orderMetadataAndSetToData(onCPU.getStacksList(), COMMON_STACK_TYPE_ORDER);
+        data.setStackIdList(order._1);
+        data.setTargetType(EBPFProfilingTargetType.ON_CPU);
+        data.setDataBinary(EBPFOnCPUProfiling.newBuilder()
+                .addAllStacks(order._2)
+                .setDumpCount(onCPU.getDumpCount())
+                .build().toByteArray());
     }
 
-    private void orderMetadataAndSetToData(EBPFProfilingData data, List<EBPFProfilingStackMetadata> original,
-                                           List<EBPFProfilingStackType> order) throws IOException {
+    private void processOffCPUProfiling(EBPFProfilingData data, EBPFOffCPUProfiling offCPUProfiling) throws IOException {
+        Tuple2<String, List<EBPFProfilingStackMetadata>> order = orderMetadataAndSetToData(offCPUProfiling.getStacksList(), COMMON_STACK_TYPE_ORDER);
+        data.setStackIdList(order._1);
+        data.setTargetType(EBPFProfilingTargetType.OFF_CPU);
+        data.setDataBinary(EBPFOffCPUProfiling.newBuilder()
+                .addAllStacks(order._2)
+                .setSwitchCount(offCPUProfiling.getSwitchCount())
+                .setDuration(offCPUProfiling.getDuration())
+                .build().toByteArray());
+    }
+
+    private Tuple2<String, List<EBPFProfilingStackMetadata>> orderMetadataAndSetToData(List<EBPFProfilingStackMetadata> original,
+                                           List<EBPFProfilingStackType> order) {
         final HashMap<EBPFProfilingStackType, EBPFProfilingStackMetadata> tmp = new HashMap<>();
         original.forEach(e -> tmp.put(EBPFProfilingStackType.valueOf(e.getStackType()), e));
 
-        final ByteArrayOutputStream result = new ByteArrayOutputStream();
         final List<Integer> stackIdList = new ArrayList<>();
+        final ArrayList<EBPFProfilingStackMetadata> result = new ArrayList<>();
         for (EBPFProfilingStackType orderStack : order) {
             final EBPFProfilingStackMetadata stack = tmp.get(orderStack);
             if (stack != null) {
-                stack.writeDelimitedTo(result);
+                result.add(stack);
                 stackIdList.add(stack.getStackId());
             }
         }
-        data.setStacksBinary(result.toByteArray());
-        data.setStackIdList(Joiner.on("_").join(stackIdList));
+        return Tuple.of(Joiner.on("_").join(stackIdList), result);
     }
 }

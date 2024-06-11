@@ -28,7 +28,8 @@ import org.apache.skywalking.oap.server.core.analysis.metrics.Metrics;
 import org.apache.skywalking.oap.server.core.analysis.worker.MetricsStreamProcessor;
 import org.apache.skywalking.oap.server.core.remote.grpc.proto.RemoteData;
 import org.apache.skywalking.oap.server.core.source.ScopeDeclaration;
-import org.apache.skywalking.oap.server.core.storage.annotation.BanyanDBShardingKey;
+import org.apache.skywalking.oap.server.core.storage.StorageID;
+import org.apache.skywalking.oap.server.core.storage.annotation.BanyanDB;
 import org.apache.skywalking.oap.server.core.storage.annotation.Column;
 import org.apache.skywalking.oap.server.core.storage.type.Convert2Entity;
 import org.apache.skywalking.oap.server.core.storage.type.Convert2Storage;
@@ -45,27 +46,27 @@ import static org.apache.skywalking.oap.server.core.source.DefaultScopeDefine.NE
 })
 public class NetworkAddressAlias extends Metrics {
     public static final String INDEX_NAME = "network_address_alias";
-    private static final String ADDRESS = "address";
-    private static final String REPRESENT_SERVICE_ID = "represent_service_id";
-    private static final String REPRESENT_SERVICE_INSTANCE_ID = "represent_service_instance_id";
+    public static final String ADDRESS = "address";
+    public static final String REPRESENT_SERVICE_ID = "represent_service_id";
+    public static final String REPRESENT_SERVICE_INSTANCE_ID = "represent_service_instance_id";
     public static final String LAST_UPDATE_TIME_BUCKET = "last_update_time_bucket";
 
     @Setter
     @Getter
-    @Column(columnName = ADDRESS)
-    @BanyanDBShardingKey(index = 0)
+    @Column(name = ADDRESS)
+    @BanyanDB.SeriesID(index = 0)
     private String address;
     @Setter
     @Getter
-    @Column(columnName = REPRESENT_SERVICE_ID)
+    @Column(name = REPRESENT_SERVICE_ID)
     private String representServiceId;
     @Setter
     @Getter
-    @Column(columnName = REPRESENT_SERVICE_INSTANCE_ID)
+    @Column(name = REPRESENT_SERVICE_INSTANCE_ID)
     private String representServiceInstanceId;
     @Setter
     @Getter
-    @Column(columnName = LAST_UPDATE_TIME_BUCKET)
+    @Column(name = LAST_UPDATE_TIME_BUCKET)
     private long lastUpdateTimeBucket;
 
     @Override
@@ -84,8 +85,9 @@ public class NetworkAddressAlias extends Metrics {
     }
 
     @Override
-    protected String id0() {
-        return IDManager.NetworkAddressAliasDefine.buildId(address);
+    protected StorageID id0() {
+        return new StorageID().appendMutant(
+            new String[] {ADDRESS}, IDManager.NetworkAddressAliasDefine.buildId(address));
     }
 
     @Override

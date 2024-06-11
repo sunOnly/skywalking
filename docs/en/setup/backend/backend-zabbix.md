@@ -1,6 +1,6 @@
 # Zabbix Receiver
 The Zabbix receiver accepts metrics of [Zabbix Agent Active Checks protocol](https://www.zabbix.com/documentation/current/manual/appendix/items/activepassive#active_checks) format into the [Meter System](./../../concepts-and-designs/meter.md).
-Zabbix Agent is based on GPL-2.0 License.
+Zabbix Agent is based on GPL-2.0 License, only version `6.x` and below are supported.
 
 ## Module definition
 ```yaml
@@ -30,8 +30,12 @@ You can find details on Zabbix agent items from [Zabbix Agent documentation](htt
 ### Configuration file
 
 ```yaml
+# initExp is the expression that initializes the current configuration file
+initExp: <string>
 # insert metricPrefix into metric name:  <metricPrefix>_<raw_metric_name>
 metricPrefix: <string>
+# expPrefix is executed before the metrics executes other functions.
+expPrefix: <string>
 # expSuffix is appended to all expression in this file.
 expSuffix: <string>
 # Datasource from Zabbix Item keys.

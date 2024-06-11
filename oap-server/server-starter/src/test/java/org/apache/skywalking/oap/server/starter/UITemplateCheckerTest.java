@@ -21,16 +21,17 @@ package org.apache.skywalking.oap.server.starter;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.skywalking.oap.server.core.management.ui.template.UITemplateInitializer;
+import org.apache.skywalking.oap.server.library.util.ResourceUtils;
+import org.apache.skywalking.oap.server.library.util.StringUtil;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
-import org.apache.skywalking.oap.server.core.management.ui.template.UITemplateInitializer;
-import org.apache.skywalking.oap.server.library.util.ResourceUtils;
-import org.apache.skywalking.oap.server.library.util.StringUtil;
-import org.junit.Assert;
-import org.junit.Test;
 
 /**
  * @since 9.0.0 SkyWalking migrate to skywalking-booster-ui, the configs are changed. This test verifies whether the
@@ -47,8 +48,13 @@ public class UITemplateCheckerTest {
             File[] templateFiles = ResourceUtils.getPathFiles("ui-initialized-templates/" + folder.toLowerCase(
                 Locale.ROOT));
             for (File template : templateFiles) {
-                JsonNode jsonNode = mapper.readTree(template);
-                if (jsonNode == null || jsonNode.size() == 0) {
+                JsonNode jsonNode;
+                try {
+                    jsonNode = mapper.readTree(template);
+                } catch (Exception e) {
+                    throw new IllegalArgumentException("File: " + template.getName() + " is not a legal json file.", e);
+                }
+                if (jsonNode == null || jsonNode.isEmpty()) {
                     continue;
                 }
                 if (jsonNode.size() > 1) {
@@ -61,11 +67,10 @@ public class UITemplateCheckerTest {
                 String inName = configNode.get("name").textValue();
                 String inLayer = configNode.get("layer").textValue();
                 String inEntity = configNode.get("entity").textValue();
-                Assert.assertFalse("File: " + template + " has duplicate id: " + inId, dashboardIds.contains(inId));
+                Assertions.assertFalse(dashboardIds.contains(inId), "File: " + template + " has duplicate id: " + inId);
                 dashboardIds.add(inId);
                 String nameKey = StringUtil.join('_', inLayer, inEntity, inName);
-                Assert.assertFalse(
-                    "File:" + template + " has duplicate name: " + inName, dashboardNames.contains(nameKey));
+                Assertions.assertFalse(dashboardNames.contains(nameKey), "File:" + template + " has duplicate name: " + inName);
                 dashboardNames.add(nameKey);
 
                 //Todo: implement more validation.

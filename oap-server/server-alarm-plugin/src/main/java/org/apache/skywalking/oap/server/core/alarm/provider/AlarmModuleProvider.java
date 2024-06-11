@@ -26,7 +26,6 @@ import org.apache.skywalking.oap.server.core.CoreModule;
 import org.apache.skywalking.oap.server.core.alarm.AlarmModule;
 import org.apache.skywalking.oap.server.core.alarm.AlarmStandardPersistence;
 import org.apache.skywalking.oap.server.core.alarm.MetricsNotify;
-import org.apache.skywalking.oap.server.library.module.ModuleConfig;
 import org.apache.skywalking.oap.server.library.module.ModuleDefine;
 import org.apache.skywalking.oap.server.library.module.ModuleProvider;
 import org.apache.skywalking.oap.server.library.module.ModuleStartException;
@@ -49,25 +48,14 @@ public class AlarmModuleProvider extends ModuleProvider {
     }
 
     @Override
-    public ModuleConfig createConfigBeanIfAbsent() {
-        return new AlarmSettings();
+    public ConfigCreator newConfigCreator() {
+        return null;
     }
 
     @Override
     public void prepare() throws ServiceNotProvidedException, ModuleStartException {
-        Reader applicationReader;
-        try {
-            applicationReader = ResourceUtils.read("alarm-settings.yml");
-        } catch (FileNotFoundException e) {
-            throw new ModuleStartException("can't load alarm-settings.yml", e);
-        }
-        RulesReader reader = new RulesReader(applicationReader);
-        Rules rules = reader.readRules();
-
-        alarmRulesWatcher = new AlarmRulesWatcher(rules, this);
-
+        alarmRulesWatcher = new AlarmRulesWatcher(new Rules(), this);
         notifyHandler = new NotifyHandler(alarmRulesWatcher, getManager());
-        notifyHandler.init(new AlarmStandardPersistence(getManager()));
         this.registerServiceImplementation(MetricsNotify.class, notifyHandler);
     }
 
@@ -82,6 +70,16 @@ public class AlarmModuleProvider extends ModuleProvider {
 
     @Override
     public void notifyAfterCompleted() throws ServiceNotProvidedException, ModuleStartException {
+        Reader applicationReader;
+        try {
+            applicationReader = ResourceUtils.read("alarm-settings.yml");
+        } catch (FileNotFoundException e) {
+            throw new ModuleStartException("can't load alarm-settings.yml", e);
+        }
+        RulesReader reader = new RulesReader(applicationReader);
+        Rules rules = reader.readRules();
+        alarmRulesWatcher.initConfig(rules);
+        notifyHandler.init(new AlarmStandardPersistence(getManager()));
     }
 
     @Override

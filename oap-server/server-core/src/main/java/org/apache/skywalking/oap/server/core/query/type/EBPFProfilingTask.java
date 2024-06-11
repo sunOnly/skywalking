@@ -30,12 +30,18 @@ public class EBPFProfilingTask {
     private String taskId;
     private String serviceId;
     private String serviceName;
+    private String serviceInstanceId;
+    private String serviceInstanceName;
     private List<String> processLabels;
+    private String processId;
+    private String processName;
     private long taskStartTime;
     private EBPFProfilingTriggerType triggerType;
     private long fixedTriggerDuration;
     private EBPFProfilingTargetType targetType;
     private long createTime;
     private long lastUpdateTime;
+    private EBPFProfilingTaskExtension extensionConfig;
+    private List<ContinuousProfilingTriggeredCause> continuousProfilingCauses;
 
 }

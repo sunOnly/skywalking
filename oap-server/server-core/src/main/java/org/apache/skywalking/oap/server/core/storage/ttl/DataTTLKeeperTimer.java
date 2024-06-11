@@ -18,12 +18,7 @@
 
 package org.apache.skywalking.oap.server.core.storage.ttl;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.skywalking.oap.server.library.util.RunnableWithExceptionProtection;
 import org.apache.skywalking.oap.server.core.CoreModule;
 import org.apache.skywalking.oap.server.core.CoreModuleConfig;
 import org.apache.skywalking.oap.server.core.analysis.metrics.Metrics;
@@ -36,6 +31,13 @@ import org.apache.skywalking.oap.server.core.storage.model.IModelManager;
 import org.apache.skywalking.oap.server.core.storage.model.Model;
 import org.apache.skywalking.oap.server.library.module.ModuleManager;
 import org.apache.skywalking.oap.server.library.util.CollectionUtils;
+import org.apache.skywalking.oap.server.library.util.RunnableWithExceptionProtection;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * TTL = Time To Live
@@ -75,22 +77,19 @@ public enum DataTTLKeeperTimer {
         IModelManager modelGetter = moduleManager.find(CoreModule.NAME).provider().getService(IModelManager.class);
         List<Model> models = modelGetter.allModels();
 
-        try {
-            List<RemoteInstance> remoteInstances = clusterNodesQuery.queryRemoteNodes();
-            if (CollectionUtils.isNotEmpty(remoteInstances) && !remoteInstances.get(0).getAddress().isSelf()) {
-                log.info(
-                    "The selected first getAddress is {}. The remove stage is skipped.",
-                    remoteInstances.get(0).toString()
-                );
-                return;
-            }
-
-            log.info("Beginning to remove expired metrics from the storage.");
-            models.forEach(this::execute);
-        } finally {
-            log.info("Beginning to inspect data boundaries.");
-            this.inspect(models);
+        List<RemoteInstance> remoteInstances = clusterNodesQuery.queryRemoteNodes();
+        // Sort the instances as same as RemoteClientManager#refresh did.
+        Collections.sort(remoteInstances);
+        if (CollectionUtils.isNotEmpty(remoteInstances) && !remoteInstances.get(0).getAddress().isSelf()) {
+            log.info(
+                "The selected first getAddress is {}. The remove stage is skipped.",
+                remoteInstances.get(0).toString()
+            );
+            return;
         }
+
+        log.info("Beginning to remove expired metrics from the storage.");
+        models.forEach(this::execute);
     }
 
     private void execute(Model model) {
@@ -100,7 +99,8 @@ public enum DataTTLKeeperTimer {
             }
             if (log.isDebugEnabled()) {
                 log.debug(
-                    "Is record? {}. RecordDataTTL {}, MetricsDataTTL {}",
+                    "Model {}, is record? {}. RecordDataTTL {}, MetricsDataTTL {}",
+                    model.getName(),
                     model.isRecord(),
                     moduleConfig.getRecordDataTTL(),
                     moduleConfig.getMetricsDataTTL());
@@ -113,17 +113,6 @@ public enum DataTTLKeeperTimer {
                          );
         } catch (IOException e) {
             log.warn("History of {} delete failure", model.getName());
-            log.error(e.getMessage(), e);
-        }
-    }
-
-    private void inspect(List<Model> models) {
-        try {
-            moduleManager.find(StorageModule.NAME)
-                         .provider()
-                         .getService(IHistoryDeleteDAO.class)
-                         .inspect(models, Metrics.TIME_BUCKET);
-        } catch (IOException e) {
             log.error(e.getMessage(), e);
         }
     }

@@ -58,7 +58,7 @@ info:
 │   └── serviceB
 │       └── productAPI-v2.yaml
 ```
-3. The feature is enabled by default. You can disable it by setting the `Core Module` configuration `${SW_CORE_ENABLE_ENDPOINT_NAME_GROUPING_BY_OPAENAPI:false}`.
+3. The feature is enabled by default. You can disable it by setting the `Core Module` configuration `${SW_CORE_ENABLE_ENDPOINT_NAME_GROUPING_BY_OPENAPI:false}`.
 
 ### Rules match priority 
 We recommend designing the API path as clearly as possible. If the API path is fuzzy and an endpoint name matches multiple paths, SkyWalking would select a path according to the match priority set out below:
@@ -272,11 +272,11 @@ components:
 
 Here are some use cases:
 
-   | Incoming Endpiont | Incoming Service | x-sw-service-name | x-sw-endpoint-name-match-rule | x-sw-endpoint-name-format | Matched | Grouping Result |
+   | Incoming Endpoint | Incoming Service | x-sw-service-name | x-sw-endpoint-name-match-rule | x-sw-endpoint-name-format | Matched | Grouping Result |
    |-----|-----|-----|-----|-----|-----|-----|
    | `GET:/products` | serviceB | default | default | default | true | `GET:/products` |
-   | `GET:/products/123` | serviceB | default | default | default |  true | `GET:/products{id}` |
    | `GET:/products/asia/cn` | serviceB | default | default | default | true | `GET:/products/{region}/{country}` |
+   | `GET:/products/123` | serviceB | default | default | default |  true | `GET:/products{id}` |
    | `GET:/products/123/abc/efg` | serviceB | default | default | default |  false | `GET:/products/123/abc/efg` | 
    | `<GET>:/products/123` | serviceB | default | default | default | false | `<GET>:/products/123`|
    | `GET:/products/123` | serviceC | default | default | default | false | `GET:/products/123` |
@@ -286,7 +286,7 @@ Here are some use cases:
    | `/products/123:<GET>` | serviceB | default | `${PATH}:<${METHOD}>` | default | true | `GET:/products/{id}` |
 
 ### Initialize and update the OpenAPI definitions dynamically
-Use [Dynamic Configuration](dynamic-config) to initialize and update OpenAPI definitions, the endpoint grouping rules from OpenAPI
+Use [Dynamic Configuration](dynamic-config.md) to initialize and update OpenAPI definitions, the endpoint grouping rules from OpenAPI
 will re-create by the new config.
 
 
@@ -302,7 +302,6 @@ grouping:
   # Endpoint of the service would follow the following rules
   - service-name: serviceA
     rules:
-      # Logic name when the regex expression matched.
-      - endpoint-name: /prod/{id}
-        regex: \/prod\/.+
+       # {var} represents any variable string in the URI.
+      - /prod/{var}
 ```

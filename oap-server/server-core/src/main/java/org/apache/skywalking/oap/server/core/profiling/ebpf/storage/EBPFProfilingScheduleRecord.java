@@ -18,8 +18,6 @@
 
 package org.apache.skywalking.oap.server.core.profiling.ebpf.storage;
 
-import com.google.common.hash.Hashing;
-import com.linecorp.armeria.internal.shaded.guava.base.Charsets;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -28,6 +26,8 @@ import org.apache.skywalking.oap.server.core.analysis.Stream;
 import org.apache.skywalking.oap.server.core.analysis.metrics.Metrics;
 import org.apache.skywalking.oap.server.core.analysis.worker.MetricsStreamProcessor;
 import org.apache.skywalking.oap.server.core.remote.grpc.proto.RemoteData;
+import org.apache.skywalking.oap.server.core.storage.StorageID;
+import org.apache.skywalking.oap.server.core.storage.annotation.BanyanDB;
 import org.apache.skywalking.oap.server.core.storage.annotation.Column;
 import org.apache.skywalking.oap.server.core.storage.type.Convert2Entity;
 import org.apache.skywalking.oap.server.core.storage.type.Convert2Storage;
@@ -43,12 +43,12 @@ import static org.apache.skywalking.oap.server.core.source.DefaultScopeDefine.EB
 @Setter
 @Getter
 @Stream(name = EBPFProfilingScheduleRecord.INDEX_NAME, scopeId = EBPF_PROFILING_SCHEDULE,
-        builder = EBPFProfilingScheduleRecord.Builder.class, processor = MetricsStreamProcessor.class)
+    builder = EBPFProfilingScheduleRecord.Builder.class, processor = MetricsStreamProcessor.class)
 @MetricsExtension(supportDownSampling = false, supportUpdate = true)
 @EqualsAndHashCode(of = {
-        "taskId",
-        "processId",
-        "startTime",
+    "taskId",
+    "processId",
+    "startTime",
 })
 public class EBPFProfilingScheduleRecord extends Metrics {
 
@@ -57,15 +57,20 @@ public class EBPFProfilingScheduleRecord extends Metrics {
     public static final String PROCESS_ID = "process_id";
     public static final String START_TIME = "start_time";
     public static final String END_TIME = "end_time";
+    public static final String EBPF_PROFILING_SCHEDULE_ID = "ebpf_profiling_schedule_id";
 
-    @Column(columnName = TASK_ID, length = 600)
+    @Column(name = TASK_ID)
+    @BanyanDB.SeriesID(index = 0)
     private String taskId;
-    @Column(columnName = PROCESS_ID, length = 600)
+    @Column(name = PROCESS_ID, length = 600)
     private String processId;
-    @Column(columnName = START_TIME)
+    @Column(name = START_TIME)
     private long startTime;
-    @Column(columnName = END_TIME)
+    @Column(name = END_TIME)
     private long endTime;
+    @Column(name = EBPF_PROFILING_SCHEDULE_ID)
+    @BanyanDB.SeriesID(index = 1)
+    private String scheduleId;
 
     @Override
     public boolean combine(Metrics metrics) {
@@ -91,16 +96,15 @@ public class EBPFProfilingScheduleRecord extends Metrics {
     }
 
     @Override
-    protected String id0() {
-        return Hashing.sha256().newHasher()
-                .putString(String.format("%s_%s_%d", taskId, processId, startTime), Charsets.UTF_8)
-                .hash().toString();
+    protected StorageID id0() {
+        return new StorageID().append(TASK_ID, taskId).append(EBPF_PROFILING_SCHEDULE_ID, scheduleId);
     }
 
     @Override
     public void deserialize(RemoteData remoteData) {
         setTaskId(remoteData.getDataStrings(0));
         setProcessId(remoteData.getDataStrings(1));
+        setScheduleId(remoteData.getDataStrings(2));
         setStartTime(remoteData.getDataLongs(0));
         setEndTime(remoteData.getDataLongs(1));
         setTimeBucket(remoteData.getDataLongs(2));
@@ -111,6 +115,7 @@ public class EBPFProfilingScheduleRecord extends Metrics {
         final RemoteData.Builder builder = RemoteData.newBuilder();
         builder.addDataStrings(taskId);
         builder.addDataStrings(processId);
+        builder.addDataStrings(scheduleId);
         builder.addDataLongs(startTime);
         builder.addDataLongs(endTime);
         builder.addDataLongs(getTimeBucket());
@@ -129,6 +134,7 @@ public class EBPFProfilingScheduleRecord extends Metrics {
             final EBPFProfilingScheduleRecord executeTraffic = new EBPFProfilingScheduleRecord();
             executeTraffic.setTaskId((String) converter.get(TASK_ID));
             executeTraffic.setProcessId((String) converter.get(PROCESS_ID));
+            executeTraffic.setScheduleId((String) converter.get(EBPF_PROFILING_SCHEDULE_ID));
             executeTraffic.setStartTime(((Number) converter.get(START_TIME)).longValue());
             executeTraffic.setEndTime(((Number) converter.get(END_TIME)).longValue());
             executeTraffic.setTimeBucket(((Number) converter.get(TIME_BUCKET)).longValue());
@@ -139,6 +145,7 @@ public class EBPFProfilingScheduleRecord extends Metrics {
         public void entity2Storage(final EBPFProfilingScheduleRecord storageData, final Convert2Storage converter) {
             converter.accept(TASK_ID, storageData.getTaskId());
             converter.accept(PROCESS_ID, storageData.getProcessId());
+            converter.accept(EBPF_PROFILING_SCHEDULE_ID, storageData.getScheduleId());
             converter.accept(START_TIME, storageData.getStartTime());
             converter.accept(END_TIME, storageData.getEndTime());
             converter.accept(TIME_BUCKET, storageData.getTimeBucket());

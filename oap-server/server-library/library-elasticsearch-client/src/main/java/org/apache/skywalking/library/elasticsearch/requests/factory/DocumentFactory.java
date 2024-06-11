@@ -18,6 +18,7 @@
 package org.apache.skywalking.library.elasticsearch.requests.factory;
 
 import com.linecorp.armeria.common.HttpRequest;
+import java.util.List;
 import java.util.Map;
 import org.apache.skywalking.library.elasticsearch.requests.IndexRequest;
 import org.apache.skywalking.library.elasticsearch.requests.UpdateRequest;
@@ -40,6 +41,11 @@ public interface DocumentFactory {
     HttpRequest mget(String index, String type, Iterable<String> ids);
 
     /**
+     * Returns a request to get multiple documents of {@code indexIds}.
+     */
+    HttpRequest mget(final String type, final Map<String, List<String>> indexIds);
+
+    /**
      * Returns a request to index a document with {@link IndexRequest}.
      */
     HttpRequest index(IndexRequest request, Map<String, ?> params);
@@ -54,4 +60,9 @@ public interface DocumentFactory {
      */
     HttpRequest delete(String index, String type, Query query,
                        Map<String, ?> params);
+
+    /**
+     * Returns a request to delete documents matching the given {@code id} in {@code index}.
+     */
+    HttpRequest deleteById(String index, String type, String id, Map<String, ?> params);
 }

@@ -24,6 +24,8 @@ import lombok.Setter;
 import org.apache.skywalking.oap.server.core.analysis.TimeBucket;
 import org.apache.skywalking.oap.server.core.remote.data.StreamData;
 import org.apache.skywalking.oap.server.core.storage.StorageData;
+import org.apache.skywalking.oap.server.core.storage.StorageID;
+import org.apache.skywalking.oap.server.core.storage.annotation.BanyanDB;
 import org.apache.skywalking.oap.server.core.storage.annotation.Column;
 
 /**
@@ -33,21 +35,22 @@ import org.apache.skywalking.oap.server.core.storage.annotation.Column;
 @EqualsAndHashCode(of = {
     "timeBucket"
 })
-public abstract class Metrics extends StreamData implements StorageData, HavingDefaultValue {
-
-    public static final String TIME_BUCKET = "time_bucket";
+public abstract class Metrics extends StreamData implements StorageData {
     public static final String ENTITY_ID = "entity_id";
+    public static final String ID = "id";
 
     /**
      * Time attribute
      */
     @Getter
     @Setter
-    @Column(columnName = TIME_BUCKET)
+    @Column(name = TIME_BUCKET)
     private long timeBucket;
 
     /**
-     * Time in the cache, only work when MetricsPersistentWorker#enableDatabaseSession == true.
+     * The last update timestamp of the cache.
+     * The `update` means it is combined with the new metrics. This update doesn't mean the database level update
+     * ultimately.
      */
     @Getter
     private long lastUpdateTimestamp = 0L;
@@ -142,15 +145,21 @@ public abstract class Metrics extends StreamData implements StorageData, HavingD
         return TimeBucket.isDayBucket(timeBucket);
     }
 
-    private volatile String id;
+    private volatile StorageID id;
 
     @Override
-    public String id() {
+    public StorageID id() {
         if (id == null) {
             id = id0();
         }
         return id;
     }
 
-    protected abstract String id0();
+    /**
+     * @return {@link StorageID} of this metrics to represent the unique identity in storage.
+     * This ID doesn't have to match the physical storage primary key.
+     * The storage could pick another way to indicate the unique identity, such as BanyanDB is using
+     * {@link BanyanDB.SeriesID}
+     */
+    protected abstract StorageID id0();
 }

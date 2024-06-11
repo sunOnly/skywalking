@@ -1,20 +1,3 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 [
   {
     "id": "Browser-app",
@@ -22,22 +5,11 @@
       "children": [
         {
           "x": 0,
-          "y": 0,
+          "y": 12,
           "w": 24,
           "h": 52,
           "i": "12",
           "type": "Tab",
-          "widget": {
-            "title": "Title"
-          },
-          "graph": {},
-          "metrics": [
-            ""
-          ],
-          "metricTypes": [
-            ""
-          ],
-          "activedTabIndex": 0,
           "children": [
             {
               "name": "Overview",
@@ -56,17 +28,8 @@
                     "type": "TopList",
                     "topN": "10"
                   },
-                  "metrics": [
-                    "browser_app_single_version_error_rate"
-                  ],
-                  "metricTypes": [
-                    "sortMetrics"
-                  ],
-                  "moved": false,
-                  "metricConfig": [
-                    {
-                      "calculation": "percentage"
-                    }
+                  "expressions": [
+                    "top_n(browser_app_single_version_error_rate,10,des)/100"
                   ]
                 },
                 {
@@ -83,13 +46,9 @@
                     "type": "TopList",
                     "topN": "10"
                   },
-                  "metrics": [
-                    "browser_app_single_version_pv"
-                  ],
-                  "metricTypes": [
-                    "sortMetrics"
-                  ],
-                  "moved": false
+                  "expressions": [
+                    "top_n(browser_app_single_version_pv,10,des)"
+                  ]
                 },
                 {
                   "x": 16,
@@ -99,19 +58,24 @@
                   "i": "5",
                   "type": "Widget",
                   "widget": {
-                    "title": "App Error Count"
+                    "title": "App Error Count",
+                    "name": "App_Error_Count"
                   },
                   "graph": {
                     "type": "Bar",
                     "showBackground": true
                   },
-                  "metrics": [
+                  "expressions": [
                     "browser_app_error_sum"
                   ],
-                  "metricTypes": [
-                    "readMetricsValues"
-                  ],
-                  "moved": false
+                  "associate": [
+                    {
+                      "widgetId": "12-0-7"
+                    },
+                    {
+                      "widgetId": "12-0-11"
+                    }
+                  ]
                 },
                 {
                   "x": 0,
@@ -121,23 +85,28 @@
                   "i": "7",
                   "type": "Widget",
                   "widget": {
-                    "title": "App Load (calls / min)"
+                    "title": "App Load (calls / min)",
+                    "name": "App_Load"
                   },
                   "graph": {
                     "type": "Line",
                     "step": false,
                     "smooth": false,
-                    "showSymbol": false,
+                    "showSymbol": true,
                     "showXAxis": true,
                     "showYAxis": true
                   },
-                  "metrics": [
+                  "expressions": [
                     "browser_app_pv"
                   ],
-                  "metricTypes": [
-                    "readMetricsValues"
-                  ],
-                  "moved": false
+                  "associate": [
+                    {
+                      "widgetId": "12-0-5"
+                    },
+                    {
+                      "widgetId": "12-0-11"
+                    }
+                  ]
                 },
                 {
                   "x": 8,
@@ -153,13 +122,9 @@
                     "type": "TopList",
                     "color": "purple"
                   },
-                  "metrics": [
-                    "browser_app_page_error_sum"
-                  ],
-                  "metricTypes": [
-                    "sortMetrics"
-                  ],
-                  "moved": false
+                  "expressions": [
+                    "top_n(browser_app_page_error_sum,10,des)"
+                  ]
                 },
                 {
                   "x": 8,
@@ -169,26 +134,26 @@
                   "i": "11",
                   "type": "Widget",
                   "widget": {
-                    "title": "App Error Rate (%)"
+                    "title": "App Error Rate (%)",
+                    "name": "App_Error_Rate"
                   },
                   "graph": {
                     "type": "Line",
                     "step": false,
                     "smooth": false,
-                    "showSymbol": false,
+                    "showSymbol": true,
                     "showXAxis": true,
                     "showYAxis": true
                   },
-                  "metrics": [
-                    "browser_app_error_rate"
+                  "expressions": [
+                    "browser_app_error_rate/100"
                   ],
-                  "metricTypes": [
-                    "readMetricsValues"
-                  ],
-                  "moved": false,
-                  "metricConfig": [
+                  "associate": [
                     {
-                      "calculation": "percentage"
+                      "widgetId": "12-0-7"
+                    },
+                    {
+                      "widgetId": "12-0-5"
                     }
                   ]
                 },
@@ -199,13 +164,9 @@
                   "h": 14,
                   "i": "12",
                   "type": "Widget",
-                  "metricTypes": [
-                    "sortMetrics"
+                  "expressions": [
+                    "top_n(browser_app_page_pv,10,des)"
                   ],
-                  "metrics": [
-                    "browser_app_page_pv"
-                  ],
-                  "moved": false,
                   "widget": {
                     "title": "Top Hot Pages  (calls / min)"
                   },
@@ -221,25 +182,16 @@
                   "h": 14,
                   "i": "13",
                   "type": "Widget",
-                  "metricTypes": [
-                    "sortMetrics"
+                  "expressions": [
+                    "top_n(browser_app_page_error_rate,10,des)/100"
                   ],
-                  "metrics": [
-                    "browser_app_page_error_rate"
-                  ],
-                  "moved": false,
                   "widget": {
                     "title": "Top Unstable Pages / Error Rate (%)"
                   },
                   "graph": {
                     "type": "TopList",
                     "color": "purple"
-                  },
-                  "metricConfig": [
-                    {
-                      "calculation": "percentage"
-                    }
-                  ]
+                  }
                 },
                 {
                   "x": 16,
@@ -248,13 +200,9 @@
                   "h": 14,
                   "i": "14",
                   "type": "Widget",
-                  "metricTypes": [
-                    "sortMetrics"
+                  "expressions": [
+                    "top_n(browser_app_single_version_error_sum,10,des)"
                   ],
-                  "metrics": [
-                    "browser_app_single_version_error_sum"
-                  ],
-                  "moved": false,
                   "widget": {
                     "title": "Error Count of Versions In The Selected App"
                   },
@@ -283,23 +231,16 @@
                     "dashboardName": "Browser-Version",
                     "fontSize": 12
                   },
-                  "metrics": [
+                  "subExpressions": [
                     "browser_app_single_version_pv",
-                    "browser_app_single_version_error_rage"
+                    "browser_app_single_version_error_rage/100"
                   ],
-                  "metricTypes": [
-                    "readMetricsValues",
-                    "readMetricsValues"
-                  ],
-                  "moved": false,
                   "metricConfig": [
                     {
                       "label": "PV",
-                      "unit": "calls / min",
-                      "calculation": "average"
+                      "unit": "calls / min"
                     },
                     {
-                      "calculation": "percentageAvg",
                       "unit": "%",
                       "label": "Error Rate"
                     }
@@ -327,23 +268,20 @@
                     "showXAxis": false,
                     "showYAxis": false
                   },
-                  "metrics": [
+                  "expressions": [
+                    "avg(browser_app_page_pv)",
+                    "avg(browser_app_page_error_rate)/100"
+                  ],
+                  "subExpressions": [
                     "browser_app_page_pv",
-                    "browser_app_page_error_rate"
+                    "browser_app_page_error_rate/100"
                   ],
-                  "metricTypes": [
-                    "readMetricsValues",
-                    "readMetricsValues"
-                  ],
-                  "moved": false,
                   "metricConfig": [
                     {
                       "label": "PV",
-                      "unit": "calls / min",
-                      "calculation": "average"
+                      "unit": "calls / min"
                     },
                     {
-                      "calculation": "percentageAvg",
                       "unit": "%",
                       "label": "Error Rate"
                     }
@@ -360,26 +298,41 @@
                   "w": 24,
                   "h": 48,
                   "i": "0",
-                  "type": "Trace",
-                  "metricTypes": [
-                    ""
-                  ],
-                  "metrics": [
-                    ""
-                  ],
-                  "moved": false
+                  "type": "Trace"
+                }
+              ]
+            },
+            {
+              "name": "Log",
+              "children": [
+                {
+                  "x": 0,
+                  "y": 0,
+                  "w": 24,
+                  "h": 48,
+                  "i": "0",
+                  "type": "Log"
                 }
               ]
             }
-          ],
-          "moved": false
+          ]
+        },
+        {
+          "x": 0,
+          "y": 0,
+          "w": 24,
+          "h": 12,
+          "i": "13",
+          "type": "Event",
+          "eventAssociate": true
         }
       ],
       "layer": "BROWSER",
       "entity": "Service",
       "name": "Browser-App",
       "id": "Browser-app",
-      "isRoot": false
+      "isRoot": false,
+      "isDefault": true
     }
   }
 ]

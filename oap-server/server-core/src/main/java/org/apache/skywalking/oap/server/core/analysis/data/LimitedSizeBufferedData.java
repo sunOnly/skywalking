@@ -22,14 +22,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import org.apache.skywalking.oap.server.core.storage.ComparableStorageData;
-import org.apache.skywalking.oap.server.core.storage.StorageData;
+import org.apache.skywalking.oap.server.core.analysis.TimeBucket;
+import org.apache.skywalking.oap.server.core.analysis.topn.TopN;
 
 /**
  * LimitedSizeBufferedData is a thread no safe implementation of {@link BufferedData}. It collects limited records of
- * each {@link StorageData#id()}.
+ * each {@link TopN} which grouped by entityId and timeBucket.
  */
-public class LimitedSizeBufferedData<STORAGE_DATA extends ComparableStorageData & StorageData> implements BufferedData<STORAGE_DATA> {
+public class LimitedSizeBufferedData<STORAGE_DATA extends TopN> implements BufferedData<STORAGE_DATA> {
     private final HashMap<String, LinkedList<STORAGE_DATA>> data;
     private final int limitedSize;
 
@@ -40,11 +40,11 @@ public class LimitedSizeBufferedData<STORAGE_DATA extends ComparableStorageData 
 
     @Override
     public void accept(final STORAGE_DATA data) {
-        final String id = data.id();
-        LinkedList<STORAGE_DATA> storageDataList = this.data.get(id);
+        final String topGroupKey = data.getEntityId() + TimeBucket.getMinuteTimeBucket(data.getTimestamp());
+        LinkedList<STORAGE_DATA> storageDataList = this.data.get(topGroupKey);
         if (storageDataList == null) {
             storageDataList = new LinkedList<>();
-            this.data.put(id, storageDataList);
+            this.data.put(topGroupKey, storageDataList);
         }
 
         if (storageDataList.size() < limitedSize) {

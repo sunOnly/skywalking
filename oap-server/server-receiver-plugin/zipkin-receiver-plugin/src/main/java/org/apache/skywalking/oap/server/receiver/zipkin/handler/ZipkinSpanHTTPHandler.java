@@ -22,17 +22,12 @@ import com.linecorp.armeria.common.HttpData;
 import com.linecorp.armeria.common.HttpRequest;
 import com.linecorp.armeria.common.HttpResponse;
 import com.linecorp.armeria.common.HttpStatus;
-import com.linecorp.armeria.server.ServiceRequestContext;
 import com.linecorp.armeria.server.annotation.ConsumesJson;
 import com.linecorp.armeria.server.annotation.ConsumesProtobuf;
 import com.linecorp.armeria.server.annotation.Post;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.skywalking.oap.server.core.CoreModule;
-import org.apache.skywalking.oap.server.core.config.NamingControl;
-import org.apache.skywalking.oap.server.core.source.SourceReceiver;
 import org.apache.skywalking.oap.server.library.module.ModuleManager;
-import org.apache.skywalking.oap.server.receiver.zipkin.ZipkinReceiverConfig;
 import org.apache.skywalking.oap.server.receiver.zipkin.trace.SpanForward;
 import org.apache.skywalking.oap.server.telemetry.TelemetryModule;
 import org.apache.skywalking.oap.server.telemetry.api.CounterMetrics;
@@ -46,73 +41,68 @@ import static java.util.Objects.nonNull;
 
 @Slf4j
 public class ZipkinSpanHTTPHandler {
-    private final ZipkinReceiverConfig config;
-    private final SourceReceiver sourceReceiver;
-    private final NamingControl namingControl;
     private final HistogramMetrics histogram;
     private final CounterMetrics errorCounter;
+    private final SpanForward spanForward;
 
-    public ZipkinSpanHTTPHandler(ZipkinReceiverConfig config, ModuleManager manager) {
-        sourceReceiver = manager.find(CoreModule.NAME).provider().getService(SourceReceiver.class);
-        namingControl = manager.find(CoreModule.NAME).provider().getService(NamingControl.class);
-        this.config = config;
+    public ZipkinSpanHTTPHandler(SpanForward forward, ModuleManager manager) {
+        this.spanForward = forward;
         MetricsCreator metricsCreator = manager.find(TelemetryModule.NAME)
                                                .provider()
                                                .getService(MetricsCreator.class);
         histogram = metricsCreator.createHistogramMetric(
             "trace_in_latency", "The process latency of trace data",
-            new MetricsTag.Keys("protocol"), new MetricsTag.Values("zipkin")
+            new MetricsTag.Keys("protocol"), new MetricsTag.Values("zipkin-http")
         );
         errorCounter = metricsCreator.createCounter(
             "trace_analysis_error_count", "The error number of trace analysis",
-            new MetricsTag.Keys("protocol"), new MetricsTag.Values("zipkin")
+            new MetricsTag.Keys("protocol"), new MetricsTag.Values("zipkin-http")
         );
     }
 
     @Post("/api/v2/spans")
-    public HttpResponse collectV2Spans(ServiceRequestContext ctx, HttpRequest req) {
-        return doCollectSpans(SpanBytesDecoder.JSON_V2, ctx, req);
+    public HttpResponse collectV2Spans(HttpRequest req) {
+        return doCollectSpans(SpanBytesDecoder.JSON_V2, req);
     }
 
     @Post("/api/v2/spans")
     @ConsumesJson
-    public HttpResponse collectV2JsonSpans(ServiceRequestContext ctx, HttpRequest req) {
-        return doCollectSpans(SpanBytesDecoder.JSON_V2, ctx, req);
+    public HttpResponse collectV2JsonSpans(HttpRequest req) {
+        return doCollectSpans(SpanBytesDecoder.JSON_V2, req);
     }
 
     @Post("/api/v2/spans")
     @ConsumesProtobuf
-    public HttpResponse collectV2ProtobufSpans(ServiceRequestContext ctx, HttpRequest req) {
-        return doCollectSpans(SpanBytesDecoder.PROTO3, ctx, req);
+    public HttpResponse collectV2ProtobufSpans(HttpRequest req) {
+        return doCollectSpans(SpanBytesDecoder.PROTO3, req);
     }
 
     @Post("/api/v1/spans")
-    public HttpResponse collectV1Spans(ServiceRequestContext ctx, HttpRequest req) {
-        return doCollectSpans(SpanBytesDecoder.JSON_V1, ctx, req);
+    public HttpResponse collectV1Spans(HttpRequest req) {
+        return doCollectSpans(SpanBytesDecoder.JSON_V1, req);
     }
 
     @Post("/api/v1/spans")
     @ConsumesJson
-    public HttpResponse collectV1JsonSpans(ServiceRequestContext ctx, HttpRequest req) {
-        return doCollectSpans(SpanBytesDecoder.JSON_V1, ctx, req);
+    public HttpResponse collectV1JsonSpans(HttpRequest req) {
+        return doCollectSpans(SpanBytesDecoder.JSON_V1, req);
     }
 
     @Post("/api/v1/spans")
     @ConsumesThrift
-    public HttpResponse collectV1ThriftSpans(ServiceRequestContext ctx, HttpRequest req) {
-        return doCollectSpans(SpanBytesDecoder.THRIFT, ctx, req);
+    public HttpResponse collectV1ThriftSpans(HttpRequest req) {
+        return doCollectSpans(SpanBytesDecoder.THRIFT, req);
     }
 
     HttpResponse doCollectSpans(final SpanBytesDecoder decoder,
-                                final ServiceRequestContext ctx,
                                 final HttpRequest req) {
         final HistogramMetrics.Timer timer = histogram.createTimer();
         final HttpResponse response = HttpResponse.from(req.aggregate().thenApply(request -> {
-            final HttpData httpData = UnzippingBytesRequestConverter.convertRequest(ctx, request);
-            final List<Span> spanList = decoder.decodeList(httpData.byteBuf().nioBuffer());
-            final SpanForward forward = new SpanForward(namingControl, sourceReceiver, config);
-            forward.send(spanList);
-            return HttpResponse.of(HttpStatus.OK);
+            try (final HttpData httpData = request.content()) {
+                final List<Span> spanList = decoder.decodeList(httpData.byteBuf().nioBuffer());
+                spanForward.send(spanList);
+                return HttpResponse.of(HttpStatus.ACCEPTED);
+            }
         }));
         response.whenComplete().handle((unused, throwable) -> {
             if (nonNull(throwable)) {

@@ -25,6 +25,7 @@ import org.apache.skywalking.apm.network.language.agent.v3.SegmentObject;
 import org.apache.skywalking.apm.network.language.agent.v3.SpanObject;
 import org.apache.skywalking.oap.server.core.analysis.manual.searchtag.Tag;
 import org.apache.skywalking.oap.server.core.analysis.manual.segment.SegmentRecord;
+import org.apache.skywalking.oap.server.core.query.input.Duration;
 import org.apache.skywalking.oap.server.core.query.type.QueryOrder;
 import org.apache.skywalking.oap.server.core.query.type.Span;
 import org.apache.skywalking.oap.server.core.query.type.TraceBrief;
@@ -39,8 +40,7 @@ public class ProfileTraceDAO implements ITraceQueryDAO {
     }
 
     @Override
-    public TraceBrief queryBasicTraces(long startSecondTB,
-                                       long endSecondTB,
+    public TraceBrief queryBasicTraces(Duration duration,
                                        long minDuration,
                                        long maxDuration,
                                        String serviceId,
@@ -77,6 +77,35 @@ public class ProfileTraceDAO implements ITraceQueryDAO {
         segment.setServiceId("service");
         segment.setSegmentId(exportData.getSegmentId());
         return segments;
+    }
+
+    @Override
+    public List<SegmentRecord> queryBySegmentIdList(List<String> segmentIdList) throws IOException {
+        final ArrayList<SegmentRecord> segments = new ArrayList<>();
+        final SegmentRecord segment = new SegmentRecord();
+        segments.add(segment);
+
+        final SegmentObject.Builder segmentBuilder = SegmentObject.newBuilder();
+        segmentBuilder.setTraceSegmentId(exportData.getSegmentId());
+        for (ExportedData.Span span : exportData.getSpans()) {
+            segmentBuilder.addSpans(SpanObject.newBuilder()
+                .setOperationName(span.getOperation())
+                .setStartTime(span.getStart())
+                .setEndTime(span.getEnd())
+                .setSpanId(span.getId())
+                .setParentSpanId(span.getParentId()));
+        }
+        segment.setDataBinary(segmentBuilder.build().toByteArray());
+        segment.setTraceId(exportData.getTraceId());
+        segment.setServiceId("service");
+        segment.setSegmentId(exportData.getSegmentId());
+        segment.setLatency(exportData.getLimit() * 10);
+        return segments;
+    }
+
+    @Override
+    public List<SegmentRecord> queryByTraceIdWithInstanceId(List<String> traceIdList, List<String> instanceIdList) throws IOException {
+        return null;
     }
 
     @Override

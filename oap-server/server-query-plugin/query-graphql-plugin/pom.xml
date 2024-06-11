@@ -21,7 +21,7 @@
     <parent>
         <artifactId>server-query-plugin</artifactId>
         <groupId>org.apache.skywalking</groupId>
-        <version>9.1.0-SNAPSHOT</version>
+        <version>10.1.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -44,6 +44,11 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
+            <groupId>org.apache.skywalking</groupId>
+            <artifactId>mqe-rt</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>com.graphql-java</groupId>
             <artifactId>graphql-java</artifactId>
         </dependency>
@@ -59,9 +64,14 @@
             <groupId>com.linecorp.armeria</groupId>
             <artifactId>armeria-graphql</artifactId>
         </dependency>
+
         <dependency>
-            <groupId>com.fasterxml.jackson.module</groupId>
-            <artifactId>jackson-module-afterburner</artifactId>
+            <groupId>io.fabric8</groupId>
+            <artifactId>kubernetes-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.fabric8</groupId>
+            <artifactId>kubernetes-httpclient-jdk</artifactId>
         </dependency>
     </dependencies>
 </project>

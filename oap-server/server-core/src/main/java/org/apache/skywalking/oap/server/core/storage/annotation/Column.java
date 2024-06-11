@@ -18,13 +18,12 @@
 
 package org.apache.skywalking.oap.server.core.storage.annotation;
 
+import org.apache.skywalking.oap.server.core.storage.model.ModelManipulator;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import lombok.Getter;
-import org.apache.skywalking.oap.server.core.query.sql.Function;
-import org.apache.skywalking.oap.server.core.storage.model.ModelManipulator;
 
 /**
  * Data column of all persistent entity.
@@ -33,15 +32,14 @@ import org.apache.skywalking.oap.server.core.storage.model.ModelManipulator;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Column {
     /**
-     * column name in the storage. Most of the storage will keep the name consistently. But in same cases, this name
+     * Column name in the storage. Most of the storage will keep the name consistently. But in same cases, this name
      * could be a keyword, then, the implementation will use {@link ModelManipulator} to replace the column name.
+     * <p>
+     * Be careful not to use the same column name for two models with the same type (metrics/record), which causes
+     * column conflicts in storage implementations that merge all metrics/records models into a single table/index.
+     * Also check {@code legacyName()}.
      */
-    String columnName();
-
-    /**
-     * The function is used in aggregation query.
-     */
-    Function function() default Function.None;
+    String name();
 
     /**
      * The default value of this column, when its {@link #dataType()} != {@link ValueDataType#NOT_VALUE}.
@@ -70,14 +68,6 @@ public @interface Column {
     int length() default 200;
 
     /**
-     * The return name of system environment could provide an override value of the length limitation.
-     *
-     * @return the variable name of system environment.
-     * @since 8.2.0
-     */
-    String lengthEnvVariable() default "";
-
-    /**
      * Column with data type != {@link ValueDataType#NOT_VALUE} represents this is a value column. Indicate it would be
      * queried by UI/CLI.
      *
@@ -86,6 +76,14 @@ public @interface Column {
      * @since 8.0.0
      */
     ValueDataType dataType() default ValueDataType.NOT_VALUE;
+
+    /**
+     * Since 10.0.0, multi-value column is deprecated. Use {@link ValueDataType#LABELED_VALUE} instead.
+     * This annotation is used to mark the column is a multi-value column for compatibility.
+     * @return if this column is a multi-value column.
+     */
+    @Deprecated
+    boolean multiIntValues() default false;
 
     /**
      * ValueDataType represents the data structure of value column. The persistent way of the value column determine the

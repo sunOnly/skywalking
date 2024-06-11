@@ -30,8 +30,10 @@ import org.apache.skywalking.oap.server.core.analysis.metrics.Metrics;
 import org.apache.skywalking.oap.server.core.analysis.worker.MetricsStreamProcessor;
 import org.apache.skywalking.oap.server.core.remote.grpc.proto.RemoteData;
 import org.apache.skywalking.oap.server.core.source.DefaultScopeDefine;
+import org.apache.skywalking.oap.server.core.storage.StorageID;
+import org.apache.skywalking.oap.server.core.storage.annotation.BanyanDB;
 import org.apache.skywalking.oap.server.core.storage.annotation.Column;
-import org.apache.skywalking.oap.server.core.storage.annotation.ElasticSearchMatchQuery;
+import org.apache.skywalking.oap.server.core.storage.annotation.ElasticSearch;
 import org.apache.skywalking.oap.server.core.storage.type.Convert2Entity;
 import org.apache.skywalking.oap.server.core.storage.type.Convert2Storage;
 import org.apache.skywalking.oap.server.core.storage.type.StorageBuilder;
@@ -45,24 +47,34 @@ public class EndpointTraffic extends Metrics {
     public static final String INDEX_NAME = "endpoint_traffic";
 
     public static final String SERVICE_ID = "service_id";
-    public static final String NAME = "name";
+    public static final String NAME = "endpoint_traffic_name";
 
     @Setter
     @Getter
-    @Column(columnName = SERVICE_ID)
+    @Column(name = SERVICE_ID)
+    @BanyanDB.SeriesID(index = 0)
     private String serviceId;
     @Setter
     @Getter
-    @Column(columnName = NAME)
-    @ElasticSearchMatchQuery
+    @Column(name = NAME)
+    @ElasticSearch.Column(legacyName = "name")
+    @ElasticSearch.MatchQuery
+    @BanyanDB.SeriesID(index = 1)
     private String name = Const.EMPTY_STRING;
 
     @Override
-    protected String id0() {
+    protected StorageID id0() {
         // Downgrade the time bucket to day level only.
         // supportDownSampling == false for this entity.
-        return IDManager.EndpointID.buildId(
-            this.getServiceId(), this.getName());
+        return new StorageID()
+            .appendMutant(
+                new String[] {
+                    SERVICE_ID,
+                    NAME
+                },
+                IDManager.EndpointID.buildId(
+                    this.getServiceId(), this.getName())
+            );
     }
 
     @Override

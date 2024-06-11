@@ -20,12 +20,12 @@ package org.apache.skywalking.oap.server.core.profiling.trace;
 
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.skywalking.oap.server.core.Const;
 import org.apache.skywalking.oap.server.core.analysis.Stream;
 import org.apache.skywalking.oap.server.core.analysis.config.NoneStream;
 import org.apache.skywalking.oap.server.core.analysis.worker.NoneStreamProcessor;
 import org.apache.skywalking.oap.server.core.source.ScopeDeclaration;
-import org.apache.skywalking.oap.server.core.storage.annotation.BanyanDBShardingKey;
+import org.apache.skywalking.oap.server.core.storage.StorageID;
+import org.apache.skywalking.oap.server.core.storage.annotation.BanyanDB;
 import org.apache.skywalking.oap.server.core.storage.annotation.Column;
 import org.apache.skywalking.oap.server.core.storage.type.Convert2Entity;
 import org.apache.skywalking.oap.server.core.storage.type.Convert2Storage;
@@ -40,9 +40,11 @@ import static org.apache.skywalking.oap.server.core.source.DefaultScopeDefine.PR
 @Setter
 @ScopeDeclaration(id = PROFILE_TASK, name = "ProfileTask")
 @Stream(name = ProfileTaskRecord.INDEX_NAME, scopeId = PROFILE_TASK, builder = ProfileTaskRecord.Builder.class, processor = NoneStreamProcessor.class)
+@BanyanDB.TimestampColumn(ProfileTaskRecord.START_TIME)
 public class ProfileTaskRecord extends NoneStream {
 
     public static final String INDEX_NAME = "profile_task";
+    public static final String TASK_ID = "task_id";
     public static final String SERVICE_ID = "service_id";
     public static final String ENDPOINT_NAME = "endpoint_name";
     public static final String START_TIME = "start_time";
@@ -53,26 +55,28 @@ public class ProfileTaskRecord extends NoneStream {
     public static final String MAX_SAMPLING_COUNT = "max_sampling_count";
 
     @Override
-    public String id() {
-        return getCreateTime() + Const.ID_CONNECTOR + getServiceId();
+    public StorageID id() {
+        return new StorageID().append(TASK_ID, taskId);
     }
 
-    @Column(columnName = SERVICE_ID)
-    @BanyanDBShardingKey(index = 0)
+    @Column(name = SERVICE_ID)
+    @BanyanDB.SeriesID(index = 0)
     private String serviceId;
-    @Column(columnName = ENDPOINT_NAME)
+    @Column(name = ENDPOINT_NAME, length = 512)
     private String endpointName;
-    @Column(columnName = START_TIME)
+    @Column(name = TASK_ID)
+    private String taskId;
+    @Column(name = START_TIME)
     private long startTime;
-    @Column(columnName = DURATION)
+    @Column(name = DURATION)
     private int duration;
-    @Column(columnName = MIN_DURATION_THRESHOLD)
+    @Column(name = MIN_DURATION_THRESHOLD)
     private int minDurationThreshold;
-    @Column(columnName = DUMP_PERIOD)
+    @Column(name = DUMP_PERIOD)
     private int dumpPeriod;
-    @Column(columnName = CREATE_TIME)
+    @Column(name = CREATE_TIME)
     private long createTime;
-    @Column(columnName = MAX_SAMPLING_COUNT)
+    @Column(name = MAX_SAMPLING_COUNT)
     private int maxSamplingCount;
 
     public static class Builder implements StorageBuilder<ProfileTaskRecord> {
@@ -81,6 +85,7 @@ public class ProfileTaskRecord extends NoneStream {
             final ProfileTaskRecord record = new ProfileTaskRecord();
             record.setServiceId((String) converter.get(SERVICE_ID));
             record.setEndpointName((String) converter.get(ENDPOINT_NAME));
+            record.setTaskId((String) converter.get(TASK_ID));
             record.setStartTime(((Number) converter.get(START_TIME)).longValue());
             record.setDuration(((Number) converter.get(DURATION)).intValue());
             record.setMinDurationThreshold(((Number) converter.get(MIN_DURATION_THRESHOLD)).intValue());
@@ -95,6 +100,7 @@ public class ProfileTaskRecord extends NoneStream {
         public void entity2Storage(final ProfileTaskRecord storageData, final Convert2Storage converter) {
             converter.accept(SERVICE_ID, storageData.getServiceId());
             converter.accept(ENDPOINT_NAME, storageData.getEndpointName());
+            converter.accept(TASK_ID, storageData.getTaskId());
             converter.accept(START_TIME, storageData.getStartTime());
             converter.accept(DURATION, storageData.getDuration());
             converter.accept(MIN_DURATION_THRESHOLD, storageData.getMinDurationThreshold());

@@ -22,6 +22,7 @@ import com.linecorp.armeria.common.HttpData;
 import com.linecorp.armeria.common.HttpStatus;
 import com.linecorp.armeria.common.util.Exceptions;
 import java.io.InputStream;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -32,6 +33,7 @@ import org.apache.skywalking.library.elasticsearch.ElasticSearchVersion;
 import org.apache.skywalking.library.elasticsearch.requests.IndexRequest;
 import org.apache.skywalking.library.elasticsearch.requests.UpdateRequest;
 import org.apache.skywalking.library.elasticsearch.response.Document;
+import org.apache.skywalking.library.elasticsearch.response.Documents;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -84,6 +86,35 @@ public final class DocumentClient {
     }
 
     @SneakyThrows
+    public Optional<Documents> mget(String type, Map<String, List<String>> indexIds) {
+        final CompletableFuture<Optional<Documents>> future =
+            version.thenCompose(
+                v -> client.execute(v.requestFactory().document().mget(type, indexIds))
+                           .aggregate().thenApply(response -> {
+                        if (response.status() != HttpStatus.OK) {
+                            throw new RuntimeException(response.contentUtf8());
+                        }
+
+                        try (final HttpData content = response.content();
+                             final InputStream is = content.toInputStream()) {
+                            return Optional.of(v.codec().decode(is, Documents.class));
+                        } catch (Exception e) {
+                            return Exceptions.throwUnsafely(e);
+                        }
+                    }));
+        future.whenComplete((result, exception) -> {
+            if (exception != null) {
+                log.error("Failed to get doc by indexIds {}", indexIds, exception);
+                return;
+            }
+            if (log.isDebugEnabled()) {
+                log.debug("Docs by indexIds {}: {}", indexIds, result);
+            }
+        });
+        return future.get();
+    }
+
+    @SneakyThrows
     public void index(IndexRequest request, Map<String, Object> params) {
         final CompletableFuture<Void> future = version.thenCompose(
             v -> client.execute(v.requestFactory().document().index(request, params))
@@ -122,6 +153,28 @@ public final class DocumentClient {
             }
             if (log.isDebugEnabled()) {
                 log.debug("Succeeded updating doc: {}, params: {}", request, params);
+            }
+        });
+        future.join();
+    }
+
+    @SneakyThrows
+    public void deleteById(String index, String type, String id, Map<String, Object> params) {
+        final CompletableFuture<Void> future = version.thenCompose(
+            v -> client.execute(v.requestFactory().document().deleteById(index, type, id, params))
+                       .aggregate().thenAccept(response -> {
+                    final HttpStatus status = response.status();
+                    if (status != HttpStatus.OK) {
+                        throw new RuntimeException(response.contentUtf8());
+                    }
+                }));
+        future.whenComplete((result, exception) -> {
+            if (exception != null) {
+                log.error("Failed to delete doc by id {} in index {}, params: {}", id, index, params, exception);
+                return;
+            }
+            if (log.isDebugEnabled()) {
+                log.debug("Succeeded delete doc by id {} in index {}, params: {}", id, params, index);
             }
         });
         future.join();

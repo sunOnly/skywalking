@@ -19,14 +19,16 @@
 package org.apache.skywalking.oap.server.starter;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.skywalking.oap.server.core.CoreModule;
 import org.apache.skywalking.oap.server.core.RunningMode;
+import org.apache.skywalking.oap.server.core.status.ServerStatusService;
 import org.apache.skywalking.oap.server.core.version.Version;
 import org.apache.skywalking.oap.server.library.module.ApplicationConfiguration;
 import org.apache.skywalking.oap.server.library.module.ModuleManager;
+import org.apache.skywalking.oap.server.library.module.TerminalFriendlyTable;
 import org.apache.skywalking.oap.server.starter.config.ApplicationConfigLoader;
-import org.apache.skywalking.oap.server.telemetry.TelemetryModule;
-import org.apache.skywalking.oap.server.telemetry.api.MetricsCreator;
-import org.apache.skywalking.oap.server.telemetry.api.MetricsTag;
+
+import static org.apache.skywalking.oap.server.library.module.TerminalFriendlyTable.Row;
 
 /**
  * Starter core. Load the core configuration file, and initialize the startup sequence through {@link ModuleManager}.
@@ -34,23 +36,25 @@ import org.apache.skywalking.oap.server.telemetry.api.MetricsTag;
 @Slf4j
 public class OAPServerBootstrap {
     public static void start() {
+        ModuleManager manager = new ModuleManager("Apache SkyWalking OAP");
+        final TerminalFriendlyTable bootingParameters = manager.getBootingParameters();
+
         String mode = System.getProperty("mode");
         RunningMode.setMode(mode);
 
-        ApplicationConfigLoader configLoader = new ApplicationConfigLoader();
-        ModuleManager manager = new ModuleManager();
+        ApplicationConfigLoader configLoader = new ApplicationConfigLoader(bootingParameters);
+
+        bootingParameters.addRow(new Row("Running Mode", mode));
+        bootingParameters.addRow(new Row("Version", Version.CURRENT.toString()));
+
         try {
             ApplicationConfiguration applicationConfiguration = configLoader.load();
             manager.init(applicationConfiguration);
 
-            manager.find(TelemetryModule.NAME)
+            manager.find(CoreModule.NAME)
                    .provider()
-                   .getService(MetricsCreator.class)
-                   .createGauge("uptime", "oap server start up time", MetricsTag.EMPTY_KEY, MetricsTag.EMPTY_VALUE)
-                   // Set uptime to second
-                   .setValue(System.currentTimeMillis() / 1000d);
-
-            log.info("Version of OAP: {}", Version.CURRENT);
+                   .getService(ServerStatusService.class)
+                   .bootedNow(configLoader.getResolvedConfigurations(), System.currentTimeMillis());
 
             if (RunningMode.isInitMode()) {
                 log.info("OAP starts up in init mode successfully, exit now...");
@@ -59,6 +63,8 @@ public class OAPServerBootstrap {
         } catch (Throwable t) {
             log.error(t.getMessage(), t);
             System.exit(1);
+        } finally {
+            log.info(bootingParameters.toString());
         }
     }
 }

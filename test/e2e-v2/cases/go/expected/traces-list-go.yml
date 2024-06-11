@@ -17,11 +17,10 @@ traces:
 {{- contains .traces }}
 - segmentid: {{ notEmpty .segmentid }}
   endpointnames:
-    - /POST/correlation
+    - POST:/correlation
   duration: {{ ge .duration 0 }}
   start: "{{ notEmpty .start}}"
   iserror: false
   traceids:
     - {{ (index .traceids 0) }}
 {{- end }}
-total: {{ gt .total 0 }}

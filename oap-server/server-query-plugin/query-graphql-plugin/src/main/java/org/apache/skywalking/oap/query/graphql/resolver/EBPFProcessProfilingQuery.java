@@ -21,8 +21,11 @@ package org.apache.skywalking.oap.query.graphql.resolver;
 import graphql.kickstart.tools.GraphQLQueryResolver;
 import org.apache.skywalking.oap.server.core.CoreModule;
 import org.apache.skywalking.oap.server.core.profiling.ebpf.EBPFProfilingQueryService;
+import org.apache.skywalking.oap.server.core.profiling.ebpf.storage.EBPFProfilingTargetType;
+import org.apache.skywalking.oap.server.core.profiling.ebpf.storage.EBPFProfilingTriggerType;
 import org.apache.skywalking.oap.server.core.query.input.Duration;
 import org.apache.skywalking.oap.server.core.query.type.EBPFProfilingAnalyzation;
+import org.apache.skywalking.oap.server.core.query.type.EBPFProfilingAnalyzeAggregateType;
 import org.apache.skywalking.oap.server.core.query.type.EBPFProfilingAnalyzeTimeRange;
 import org.apache.skywalking.oap.server.core.query.type.EBPFProfilingSchedule;
 import org.apache.skywalking.oap.server.core.query.type.EBPFProfilingTask;
@@ -58,18 +61,23 @@ public class EBPFProcessProfilingQuery implements GraphQLQueryResolver {
         return getQueryService().queryPrepareCreateEBPFProfilingTaskData(serviceId);
     }
 
-    public List<EBPFProfilingTask> queryEBPFProfilingTasks(String serviceId) throws IOException {
-        if (StringUtil.isEmpty(serviceId)) {
-            throw new IllegalArgumentException("please provide the service id");
+    public List<EBPFProfilingTask> queryEBPFProfilingTasks(String serviceId, String serviceInstanceId, List<EBPFProfilingTargetType> targets, EBPFProfilingTriggerType triggerType, Duration duration) throws IOException {
+        if (StringUtil.isEmpty(serviceId) && StringUtil.isEmpty(serviceInstanceId)) {
+            throw new IllegalArgumentException("please provide the service id or instance id");
         }
-        return getQueryService().queryEBPFProfilingTasks(serviceId);
+        if (triggerType == null) {
+            triggerType = EBPFProfilingTriggerType.FIXED_TIME;
+        }
+        return getQueryService().queryEBPFProfilingTasks(serviceId, serviceInstanceId, targets, triggerType, duration);
     }
 
-    public List<EBPFProfilingSchedule> queryEBPFProfilingSchedules(String taskId, Duration duration) throws IOException {
-        return getQueryService().queryEBPFProfilingSchedules(taskId, duration);
+    public List<EBPFProfilingSchedule> queryEBPFProfilingSchedules(String taskId) throws Exception {
+        return getQueryService().queryEBPFProfilingSchedules(taskId);
     }
 
-    public EBPFProfilingAnalyzation analysisEBPFProfilingResult(List<String> scheduleIdList, List<EBPFProfilingAnalyzeTimeRange> timeRanges) throws IOException {
-        return getQueryService().getEBPFProfilingAnalyzation(scheduleIdList, timeRanges);
+    public EBPFProfilingAnalyzation analysisEBPFProfilingResult(List<String> scheduleIdList,
+                                                                List<EBPFProfilingAnalyzeTimeRange> timeRanges,
+                                                                EBPFProfilingAnalyzeAggregateType aggregateType) throws IOException {
+        return getQueryService().getEBPFProfilingAnalyzation(scheduleIdList, timeRanges, aggregateType);
     }
 }

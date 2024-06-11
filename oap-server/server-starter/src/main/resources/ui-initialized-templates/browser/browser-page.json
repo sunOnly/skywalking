@@ -1,20 +1,3 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 [
   {
     "id": "Browser-Page",
@@ -22,22 +5,11 @@
       "children": [
         {
           "x": 0,
-          "y": 0,
+          "y": 12,
           "w": 24,
           "h": 52,
           "i": "12",
           "type": "Tab",
-          "widget": {
-            "title": "Title"
-          },
-          "graph": {},
-          "metrics": [
-            ""
-          ],
-          "metricTypes": [
-            ""
-          ],
-          "activedTabIndex": 0,
           "children": [
             {
               "name": "Overview",
@@ -50,28 +22,47 @@
                   "i": "0",
                   "type": "Widget",
                   "widget": {
-                    "title": "Page FMP Latency (ms)"
+                    "title": "Page FMP Latency (ms)",
+                    "name": "Page_FMP_Latency"
                   },
                   "graph": {
                     "type": "Line",
                     "step": false,
                     "smooth": false,
-                    "showSymbol": false,
+                    "showSymbol": true,
                     "showXAxis": true,
                     "showYAxis": true
                   },
-                  "metrics": [
-                    "browser_app_page_fmp_percentile"
+                  "expressions": [
+                    "relabels(browser_app_page_fmp_percentile{p='50,75,90,95,99'},p='50,75,90,95,99',percentile='50,75,90,95,99')"
                   ],
-                  "metricTypes": [
-                    "readLabeledMetricsValues"
-                  ],
-                  "moved": false,
                   "metricConfig": [
                     {
-                      "key": "P50, P75, P90, P95, P99",
-                      "labelsIndex": "0,1,2,3,4",
-                      "label": "P50, P75, P90, P95, P99"
+                      "unit": "ms",
+                      "label": "Latency"
+                    }
+                  ],
+                  "associate": [
+                    {
+                      "widgetId": "12-0-1"
+                    },
+                    {
+                      "widgetId": "12-0-2"
+                    },
+                    {
+                      "widgetId": "12-0-3"
+                    },
+                    {
+                      "widgetId": "12-0-4"
+                    },
+                    {
+                      "widgetId": "12-0-8"
+                    },
+                    {
+                      "widgetId": "12-0-9"
+                    },
+                    {
+                      "widgetId": "12-0-10"
                     }
                   ]
                 },
@@ -83,28 +74,47 @@
                   "i": "1",
                   "type": "Widget",
                   "widget": {
-                    "title": "Page First Pack Latency (ms)"
+                    "title": "Page First Pack Latency (ms)",
+                    "name": "Page_First_Pack_Latency"
                   },
                   "graph": {
                     "type": "Line",
                     "step": false,
                     "smooth": false,
-                    "showSymbol": false,
+                    "showSymbol": true,
                     "showXAxis": true,
                     "showYAxis": true
                   },
-                  "metrics": [
-                    "browser_app_page_first_pack_percentile"
+                  "expressions": [
+                    "relabels(browser_app_page_first_pack_percentile{p='50,75,90,95,99'},p='50,75,90,95,99',percentile='50,75,90,95,99')"
                   ],
-                  "metricTypes": [
-                    "readLabeledMetricsValues"
-                  ],
-                  "moved": false,
                   "metricConfig": [
                     {
-                      "key": "P50, P75, P90, P95, P99",
-                      "labelsIndex": "0,1,2,3,4",
-                      "label": "P50, P75, P90, P95, P99"
+                      "unit": "ms",
+                      "label": "Latency"
+                    }
+                  ],
+                  "associate": [
+                    {
+                      "widgetId": "12-0-0"
+                    },
+                    {
+                      "widgetId": "12-0-2"
+                    },
+                    {
+                      "widgetId": "12-0-3"
+                    },
+                    {
+                      "widgetId": "12-0-4"
+                    },
+                    {
+                      "widgetId": "12-0-8"
+                    },
+                    {
+                      "widgetId": "12-0-9"
+                    },
+                    {
+                      "widgetId": "12-0-10"
                     }
                   ]
                 },
@@ -116,28 +126,47 @@
                   "i": "2",
                   "type": "Widget",
                   "widget": {
-                    "title": "Page FPT Latency (ms)"
+                    "title": "Page FPT Latency (ms)",
+                    "name": "Page_FPT_Latency"
                   },
                   "graph": {
                     "type": "Line",
                     "step": false,
                     "smooth": false,
-                    "showSymbol": false,
+                    "showSymbol": true,
                     "showXAxis": true,
                     "showYAxis": true
                   },
-                  "metrics": [
-                    "browser_app_page_fpt_percentile"
+                  "expressions": [
+                    "relabels(browser_app_page_fpt_percentile{p='50,75,90,95,99'},p='50,75,90,95,99',percentile='50,75,90,95,99')"
                   ],
-                  "metricTypes": [
-                    "readLabeledMetricsValues"
-                  ],
-                  "moved": false,
                   "metricConfig": [
                     {
-                      "key": "P50, P75, P90, P95, P99",
-                      "labelsIndex": "0,1,2,3,4",
-                      "label": "P50, P75, P90, P95, P99"
+                      "unit": "ms",
+                      "label": "Latency"
+                    }
+                  ],
+                  "associate": [
+                    {
+                      "widgetId": "12-0-1"
+                    },
+                    {
+                      "widgetId": "12-0-0"
+                    },
+                    {
+                      "widgetId": "12-0-3"
+                    },
+                    {
+                      "widgetId": "12-0-4"
+                    },
+                    {
+                      "widgetId": "12-0-8"
+                    },
+                    {
+                      "widgetId": "12-0-9"
+                    },
+                    {
+                      "widgetId": "12-0-10"
                     }
                   ]
                 },
@@ -149,28 +178,47 @@
                   "i": "3",
                   "type": "Widget",
                   "widget": {
-                    "title": "Page DOM Ready Latency (ms)"
+                    "title": "Page DOM Ready Latency (ms)",
+                    "name": "Page_DOM_Ready_Latency"
                   },
                   "graph": {
                     "type": "Line",
                     "step": false,
                     "smooth": false,
-                    "showSymbol": false,
+                    "showSymbol": true,
                     "showXAxis": true,
                     "showYAxis": true
                   },
-                  "metrics": [
-                    "browser_app_page_dom_ready_percentile"
+                  "expressions": [
+                    "relabels(browser_app_page_dom_ready_percentile{p='50,75,90,95,99'},p='50,75,90,95,99',percentile='50,75,90,95,99')"
                   ],
-                  "metricTypes": [
-                    "readLabeledMetricsValues"
-                  ],
-                  "moved": false,
                   "metricConfig": [
                     {
-                      "key": "P50, P75, P90, P95, P99",
-                      "labelsIndex": "0,1,2,3,4",
-                      "label": "P50, P75, P90, P95, P99"
+                      "unit": "ms",
+                      "label": "Latency"
+                    }
+                  ],
+                  "associate": [
+                    {
+                      "widgetId": "12-0-1"
+                    },
+                    {
+                      "widgetId": "12-0-2"
+                    },
+                    {
+                      "widgetId": "12-0-0"
+                    },
+                    {
+                      "widgetId": "12-0-4"
+                    },
+                    {
+                      "widgetId": "12-0-8"
+                    },
+                    {
+                      "widgetId": "12-0-9"
+                    },
+                    {
+                      "widgetId": "12-0-10"
                     }
                   ]
                 },
@@ -182,28 +230,47 @@
                   "i": "4",
                   "type": "Widget",
                   "widget": {
-                    "title": "Page TTL Latency (ms)"
+                    "title": "Page TTL Latency (ms)",
+                    "name": "Page_TTL_Latency"
                   },
                   "graph": {
                     "type": "Line",
                     "step": false,
                     "smooth": false,
-                    "showSymbol": false,
+                    "showSymbol": true,
                     "showXAxis": true,
                     "showYAxis": true
                   },
-                  "metrics": [
-                    "browser_app_page_ttl_percentile"
+                  "expressions": [
+                    "relabels(browser_app_page_ttl_percentile{p='50,75,90,95,99'},p='50,75,90,95,99',percentile='50,75,90,95,99')"
                   ],
-                  "metricTypes": [
-                    "readLabeledMetricsValues"
-                  ],
-                  "moved": false,
                   "metricConfig": [
                     {
-                      "key": "P50, P75, P90, P95, P99",
-                      "labelsIndex": "0,1,2,3,4",
-                      "label": "P50, P75, P90, P95, P99"
+                      "unit": "ms",
+                      "label": "Latency"
+                    }
+                  ],
+                  "associate": [
+                    {
+                      "widgetId": "12-0-1"
+                    },
+                    {
+                      "widgetId": "12-0-2"
+                    },
+                    {
+                      "widgetId": "12-0-3"
+                    },
+                    {
+                      "widgetId": "12-0-0"
+                    },
+                    {
+                      "widgetId": "12-0-8"
+                    },
+                    {
+                      "widgetId": "12-0-9"
+                    },
+                    {
+                      "widgetId": "12-0-10"
                     }
                   ]
                 },
@@ -215,28 +282,47 @@
                   "i": "8",
                   "type": "Widget",
                   "widget": {
-                    "title": "Page Load Latency (ms)"
+                    "title": "Page Load Latency (ms)",
+                    "name": "Page_Load_Latency"
                   },
                   "graph": {
                     "type": "Line",
                     "step": false,
                     "smooth": false,
-                    "showSymbol": false,
+                    "showSymbol": true,
                     "showXAxis": true,
                     "showYAxis": true
                   },
-                  "metrics": [
-                    "browser_app_page_load_page_percentile"
+                  "expressions": [
+                    "relabels(browser_app_page_load_page_percentile{p='50,75,90,95,99'},p='50,75,90,95,99',percentile='50,75,90,95,99')"
                   ],
-                  "metricTypes": [
-                    "readLabeledMetricsValues"
-                  ],
-                  "moved": false,
                   "metricConfig": [
                     {
-                      "key": "0,1,2,3,4",
-                      "label": "P50, P75, P90, P95, P99",
-                      "labelsIndex": "0,1,2,3,4"
+                      "unit": "ms",
+                      "label": "Latency"
+                    }
+                  ],
+                  "associate": [
+                    {
+                      "widgetId": "12-0-1"
+                    },
+                    {
+                      "widgetId": "12-0-2"
+                    },
+                    {
+                      "widgetId": "12-0-3"
+                    },
+                    {
+                      "widgetId": "12-0-4"
+                    },
+                    {
+                      "widgetId": "12-0-0"
+                    },
+                    {
+                      "widgetId": "12-0-9"
+                    },
+                    {
+                      "widgetId": "12-0-10"
                     }
                   ]
                 },
@@ -248,17 +334,18 @@
                   "i": "9",
                   "type": "Widget",
                   "widget": {
-                    "title": "Page Performance (ms)"
+                    "title": "Page Performance (ms)",
+                    "name": "Page_Performance"
                   },
                   "graph": {
                     "type": "Line",
                     "step": false,
                     "smooth": false,
-                    "showSymbol": false,
+                    "showSymbol": true,
                     "showXAxis": true,
                     "showYAxis": true
                   },
-                  "metrics": [
+                  "expressions": [
                     "browser_app_page_res_avg",
                     "browser_app_page_load_page_avg",
                     "browser_app_page_trans_avg",
@@ -270,19 +357,61 @@
                     "browser_app_page_tcp_avg",
                     "browser_app_page_ttfb_avg"
                   ],
-                  "metricTypes": [
-                    "readMetricsValues",
-                    "readMetricsValues",
-                    "readMetricsValues",
-                    "readMetricsValues",
-                    "readMetricsValues",
-                    "readMetricsValues",
-                    "readMetricsValues",
-                    "readMetricsValues",
-                    "readMetricsValues",
-                    "readMetricsValues"
+                  "associate": [
+                    {
+                      "widgetId": "12-0-1"
+                    },
+                    {
+                      "widgetId": "12-0-2"
+                    },
+                    {
+                      "widgetId": "12-0-3"
+                    },
+                    {
+                      "widgetId": "12-0-4"
+                    },
+                    {
+                      "widgetId": "12-0-8"
+                    },
+                    {
+                      "widgetId": "12-0-0"
+                    },
+                    {
+                      "widgetId": "12-0-10"
+                    }
                   ],
-                  "moved": false
+                  "metricConfig": [
+                    {
+                      "label": "res_avg"
+                    },
+                    {
+                      "label": "load_page_avg"
+                    },
+                    {
+                      "label": "trans_avg"
+                    },
+                    {
+                      "label": "fpt_avg"
+                    },
+                    {
+                      "label": "dom_analysis_avg"
+                    },
+                    {
+                      "label": "dns_avg"
+                    },
+                    {
+                      "label": "dom_ready_avg"
+                    },
+                    {
+                      "label": "redirect_avg"
+                    },
+                    {
+                      "label": "tcp_avg"
+                    },
+                    {
+                      "label": "ttfb_avg"
+                    }
+                  ]
                 },
                 {
                   "x": 0,
@@ -292,25 +421,56 @@
                   "i": "10",
                   "type": "Widget",
                   "widget": {
-                    "title": "Page Error Count Layout"
+                    "title": "Page Error Count Layout",
+                    "name": "Page_Error_Count_Layout"
                   },
                   "graph": {
                     "type": "Bar",
                     "showBackground": true
                   },
-                  "metrics": [
+                  "expressions": [
                     "browser_app_page_resource_error_sum",
                     "browser_app_page_js_error_sum",
                     "browser_app_page_unknown_error_sum",
                     "browser_app_page_ajax_error_sum"
                   ],
-                  "metricTypes": [
-                    "readMetricsValues",
-                    "readMetricsValues",
-                    "readMetricsValues",
-                    "readMetricsValues"
+                  "associate": [
+                    {
+                      "widgetId": "12-0-1"
+                    },
+                    {
+                      "widgetId": "12-0-2"
+                    },
+                    {
+                      "widgetId": "12-0-3"
+                    },
+                    {
+                      "widgetId": "12-0-4"
+                    },
+                    {
+                      "widgetId": "12-0-8"
+                    },
+                    {
+                      "widgetId": "12-0-9"
+                    },
+                    {
+                      "widgetId": "12-0-0"
+                    }
                   ],
-                  "moved": false
+                  "metricConfig": [
+                    {
+                      "label": "resource_error_sum"
+                    },
+                    {
+                      "label": "js_error_sum"
+                    },
+                    {
+                      "label": "unknown_error_sum"
+                    },
+                    {
+                      "label": "ajax_error_sum"
+                    }
+                  ]
                 }
               ]
             },
@@ -323,19 +483,33 @@
                   "w": 24,
                   "h": 48,
                   "i": "0",
-                  "type": "Trace",
-                  "metricTypes": [
-                    ""
-                  ],
-                  "metrics": [
-                    ""
-                  ],
-                  "moved": false
+                  "type": "Trace"
+                }
+              ]
+            },
+            {
+              "name": "Log",
+              "children": [
+                {
+                  "x": 0,
+                  "y": 0,
+                  "w": 24,
+                  "h": 48,
+                  "i": "0",
+                  "type": "Log"
                 }
               ]
             }
-          ],
-          "moved": false
+          ]
+        },
+        {
+          "x": 0,
+          "y": 0,
+          "w": 24,
+          "h": 12,
+          "i": "13",
+          "type": "Event",
+          "eventAssociate": true
         }
       ],
       "layer": "BROWSER",

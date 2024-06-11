@@ -22,25 +22,30 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.skywalking.oap.server.library.util.StringUtil;
 import org.apache.skywalking.oap.server.core.Const;
 import org.apache.skywalking.oap.server.core.CoreModule;
 import org.apache.skywalking.oap.server.core.analysis.IDManager;
+import org.apache.skywalking.oap.server.core.analysis.Layer;
 import org.apache.skywalking.oap.server.core.analysis.manual.networkalias.NetworkAddressAlias;
 import org.apache.skywalking.oap.server.core.cache.NetworkAddressAliasCache;
 import org.apache.skywalking.oap.server.core.config.IComponentLibraryCatalogService;
 import org.apache.skywalking.oap.server.core.query.type.Call;
 import org.apache.skywalking.oap.server.core.query.type.Node;
+import org.apache.skywalking.oap.server.core.query.type.Service;
 import org.apache.skywalking.oap.server.core.query.type.Topology;
 import org.apache.skywalking.oap.server.core.source.DetectPoint;
 import org.apache.skywalking.oap.server.library.module.ModuleManager;
+import org.apache.skywalking.oap.server.library.util.StringUtil;
 
 @Slf4j
 class ServiceTopologyBuilder {
     private final IComponentLibraryCatalogService componentLibraryCatalogService;
     private final NetworkAddressAliasCache networkAddressAliasCache;
     private final String userID;
+    private final ModuleManager moduleManager;
+    private MetadataQueryService metadataQueryService;
 
     ServiceTopologyBuilder(ModuleManager moduleManager) {
         this.componentLibraryCatalogService = moduleManager.find(CoreModule.NAME)
@@ -50,6 +55,16 @@ class ServiceTopologyBuilder {
                                                      .provider()
                                                      .getService(NetworkAddressAliasCache.class);
         this.userID = IDManager.ServiceID.buildId(Const.USER_SERVICE_NAME, false);
+        this.moduleManager = moduleManager;
+    }
+
+    private MetadataQueryService getMetadataQueryService() {
+        if (metadataQueryService == null) {
+            this.metadataQueryService = moduleManager.find(CoreModule.NAME)
+                                                     .provider()
+                                                     .getService(MetadataQueryService.class);
+        }
+        return metadataQueryService;
     }
 
     Topology build(List<Call.CallDetail> serviceRelationClientCalls, List<Call.CallDetail> serviceRelationServerCalls) {
@@ -108,6 +123,9 @@ class ServiceTopologyBuilder {
                 call.addDetectPoint(DetectPoint.CLIENT);
                 call.addSourceComponent(componentLibraryCatalogService.getComponentName(clientCall.getComponentId()));
                 calls.add(call);
+            } else {
+                Call call = callMap.get(relationId);
+                call.addSourceComponent(componentLibraryCatalogService.getComponentName(clientCall.getComponentId()));
             }
         }
 
@@ -149,8 +167,24 @@ class ServiceTopologyBuilder {
              * Set the node type due to service side component id has higher priority
              */
             final Node serverSideNode = nodes.get(serverCall.getTarget());
-            serverSideNode.setType(
-                componentLibraryCatalogService.getComponentName(serverCall.getComponentId()));
+            final String nodeType = serverSideNode.getType();
+            if (nodeType == null || !serverSideNode.hasSetOnceAtServerSide()) {
+                serverSideNode.setTypeFromServerSide(
+                    componentLibraryCatalogService.getComponentName(serverCall.getComponentId()));
+            } else {
+                final Integer componentId = componentLibraryCatalogService.getComponentId(nodeType);
+                if (componentId != null) {
+                    if (componentLibraryCatalogService.compare(componentId, serverCall.getComponentId())) {
+                        serverSideNode.setTypeFromServerSide(
+                            componentLibraryCatalogService.getComponentName(serverCall.getComponentId()));
+                    } else {
+                        //Do nothing, as the current value has higher priority
+                    }
+                } else {
+                    serverSideNode.setTypeFromServerSide(
+                        componentLibraryCatalogService.getComponentName(serverCall.getComponentId()));
+                }
+            }
 
             if (!callMap.containsKey(serverCall.getId())) {
                 Call call = new Call();
@@ -174,11 +208,18 @@ class ServiceTopologyBuilder {
         return topology;
     }
 
+    @SneakyThrows
     private Node buildNode(String sourceId, IDManager.ServiceID.ServiceIDDefinition sourceService) {
         Node serviceNode = new Node();
         serviceNode.setId(sourceId);
         serviceNode.setName(sourceService.getName());
         serviceNode.setReal(sourceService.isReal());
+        Service service = getMetadataQueryService().getService(sourceId);
+        if (service != null) {
+            serviceNode.getLayers().addAll(service.getLayers());
+        } else {
+            serviceNode.getLayers().add(Layer.UNDEFINED.name());
+        }
         return serviceNode;
     }
 }

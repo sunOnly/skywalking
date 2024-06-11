@@ -18,15 +18,16 @@
 
 package org.apache.skywalking.oap.server.receiver.envoy.als;
 
-import io.envoyproxy.envoy.config.core.v3.Node;
-import io.envoyproxy.envoy.service.accesslog.v3.StreamAccessLogsMessage;
-import java.util.List;
-import lombok.Builder;
-import lombok.Data;
-import org.apache.skywalking.apm.network.servicemesh.v3.ServiceMeshMetric;
+import lombok.Getter;
+import lombok.experimental.Accessors;
+import org.apache.skywalking.apm.network.servicemesh.v3.ServiceMeshMetrics;
 import org.apache.skywalking.oap.server.library.module.ModuleManager;
 import org.apache.skywalking.oap.server.library.module.ModuleStartException;
 import org.apache.skywalking.oap.server.receiver.envoy.EnvoyMetricReceiverConfig;
+import io.envoyproxy.envoy.config.core.v3.Node;
+import io.envoyproxy.envoy.service.accesslog.v3.StreamAccessLogsMessage;
+import lombok.Builder;
+import lombok.Data;
 
 public interface AccessLogAnalyzer<E> {
     String name();
@@ -35,7 +36,7 @@ public interface AccessLogAnalyzer<E> {
 
     /**
      * The method works as a chain of analyzers. Logs are processed sequentially by analyzers one by one, the results of the previous analyzer are passed into the current one.
-     *
+     * <p>
      * To do fast-success, the analyzer could simply check the results of the previous analyzer and return if not empty.
      *
      * @param result     of the previous analyzer.
@@ -69,8 +70,8 @@ public interface AccessLogAnalyzer<E> {
     }
 
     @Data
-    @Builder
-    static class Result {
+    @Builder(toBuilder = true)
+    class Result {
         /**
          * The service representing the Envoy node.
          */
@@ -79,6 +80,16 @@ public interface AccessLogAnalyzer<E> {
         /**
          * The analyzed metrics result.
          */
-        private List<ServiceMeshMetric.Builder> metrics;
+        @Builder.Default
+        private ServiceMeshMetrics.Builder metrics = ServiceMeshMetrics.newBuilder();
+
+        @Accessors(fluent = true)
+        private boolean hasDownstreamMetrics;
+        @Accessors(fluent = true)
+        private boolean hasUpstreamMetrics;
+
+        @Getter(lazy = true)
+        @Accessors(fluent = true)
+        private final boolean hasResult = hasDownstreamMetrics || hasUpstreamMetrics;
     }
 }

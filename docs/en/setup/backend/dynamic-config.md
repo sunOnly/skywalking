@@ -21,7 +21,7 @@ configuration:
 ## Single Configuration
 Single Configuration is a config key that corresponds to a specific config value. The logic structure is:
 ```
-{configKey}:{configVaule}
+{configKey}:{configValue}
 ```
 For example:
 ```
@@ -31,14 +31,15 @@ Supported configurations are as follows:
 
 | Config Key | Value Description | Value Format Example |
 |:----:|:----:|:----:|
-|agent-analyzer.default.slowDBAccessThreshold| Thresholds of slow Database statement. Overrides `receiver-trace/default/slowDBAccessThreshold` of `application.yml`. | default:200,mongodb:50|
+|agent-analyzer.default.slowDBAccessThreshold| Thresholds of slow Database statement. Overrides `agent-analyzer/default/slowDBAccessThreshold` of `application.yml`. | default:200,mongodb:50|
 |agent-analyzer.default.uninstrumentedGateways| The uninstrumented gateways. Overrides `gateways.yml`. | Same as [`gateways.yml`](uninstrumented-gateways.md#configuration-format). |
 |alarm.default.alarm-settings| The alarm settings. Overrides `alarm-settings.yml`. | Same as [`alarm-settings.yml`](backend-alarm.md). |
 |core.default.apdexThreshold| The apdex threshold settings. Overrides `service-apdex-threshold.yml`. | Same as [`service-apdex-threshold.yml`](apdex-threshold.md). |
 |core.default.endpoint-name-grouping| The endpoint name grouping setting. Overrides `endpoint-name-grouping.yml`. | Same as [`endpoint-name-grouping.yml`](endpoint-grouping-rules.md). |
 |core.default.log4j-xml| The log4j xml configuration. Overrides `log4j2.xml`. | Same as [`log4j2.xml`](dynamical-logging.md). |
+|core.default.searchableTracesTags| The searchableTracesTags configuration. Override `core/default/searchableTracesTags` in the `application.yml`. | http.method,http.status_code,rpc.status_code,db.type,db.instance,mq.queue,mq.topic,mq.broker |
 |agent-analyzer.default.traceSamplingPolicy| The sampling policy for default and service dimension, override `trace-sampling-policy-settings.yml`. | same as [`trace-sampling-policy-settings.yml`](trace-sampling.md) | 
-|configuration-discovery.default.agentConfigurations| The ConfigurationDiscovery settings. | See [`configuration-discovery.md`](https://github.com/apache/skywalking-java/blob/20fb8c81b3da76ba6628d34c12d23d3d45c973ef/docs/en/setup/service-agent/java-agent/configuration-discovery.md). |
+|configuration-discovery.default.agentConfigurations| The ConfigurationDiscovery settings. | See [`configuration-discovery.md`](https://skywalking.apache.org/docs/skywalking-java/next/en/setup/service-agent/java-agent/configuration-discovery/). |
 
 ## Group Configuration
 Group Configuration is a config key corresponding to a group sub config item. A sub config item is a key-value pair. The logic structure is:
@@ -67,5 +68,5 @@ Supported configurations are as follows:
 - [Etcd Implementation](./dynamic-config-etcd.md)
 - [Consul Implementation](./dynamic-config-consul.md)
 - [Apollo Implementation](./dynamic-config-apollo.md)
-- [Kuberbetes Configmap Implementation](./dynamic-config-configmap.md)
+- [Kubernetes Configmap Implementation](./dynamic-config-configmap.md)
 - [Nacos Implementation](./dynamic-config-nacos.md)

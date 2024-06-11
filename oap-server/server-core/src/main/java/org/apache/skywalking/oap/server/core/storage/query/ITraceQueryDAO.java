@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.List;
 import org.apache.skywalking.oap.server.core.analysis.manual.searchtag.Tag;
 import org.apache.skywalking.oap.server.core.analysis.manual.segment.SegmentRecord;
+import org.apache.skywalking.oap.server.core.query.input.Duration;
 import org.apache.skywalking.oap.server.core.query.type.QueryOrder;
 import org.apache.skywalking.oap.server.core.query.type.Span;
 import org.apache.skywalking.oap.server.core.query.type.TraceBrief;
@@ -30,8 +31,7 @@ import org.apache.skywalking.oap.server.library.module.Service;
 
 public interface ITraceQueryDAO extends Service {
 
-    TraceBrief queryBasicTraces(long startSecondTB,
-                                long endSecondTB,
+    TraceBrief queryBasicTraces(Duration duration,
                                 long minDuration,
                                 long maxDuration,
                                 String serviceId,
@@ -45,6 +45,10 @@ public interface ITraceQueryDAO extends Service {
                                 final List<Tag> tags) throws IOException;
 
     List<SegmentRecord> queryByTraceId(String traceId) throws IOException;
+
+    List<SegmentRecord> queryBySegmentIdList(List<String> segmentIdList) throws IOException;
+
+    List<SegmentRecord> queryByTraceIdWithInstanceId(List<String> traceIdList, List<String> instanceIdList) throws IOException;
 
     /**
      * This method gives more flexible for 3rd trace without segment concept, which can't search data through {@link #queryByTraceId(String)}

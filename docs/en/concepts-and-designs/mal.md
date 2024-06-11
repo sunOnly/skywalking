@@ -1,8 +1,8 @@
 # Meter Analysis Language
 
-The meter system provides a functional analysis language called MAL (Meter Analysis Language) that lets users analyze and 
+The meter system provides a functional analysis language called MAL (Meter Analysis Language) that lets users analyze and
 aggregate meter data in the OAP streaming system. The result of an expression can either be ingested by the agent analyzer,
-or the OC/Prometheus analyzer.
+or the OpenTelemetry/Prometheus analyzer.
 
 ## Language data type
 
@@ -29,7 +29,7 @@ instance_trace_count{region="asia-north",az="az-1"} 33
 
 ### Tag filter
 
-MAL supports four type operations to filter samples in a sample family:
+MAL supports four type operations to filter samples in a sample family by tag:
 
  - tagEqual: Filter tags exactly equal to the string provided.
  - tagNotEqual: Filter tags not equal to the string provided.
@@ -66,7 +66,7 @@ This feature requires authorizing the OAP Server to access K8s's `API Server`.
 
 ##### retagByK8sMeta
 `retagByK8sMeta(newLabelName, K8sRetagType, existingLabelName, namespaceLabelName)`. Add a new tag to the sample family based on the value of an existing label. Provide several internal converting types, including
-- K8sRetagType.Pod2Service  
+- K8sRetagType.Pod2Service
 
 Add a tag to the sample using `service` as the key, `$serviceName.$namespace` as the value, and according to the given value of the tag key, which represents the name of a pod.
 
@@ -104,13 +104,13 @@ Between a sample family and a scalar, the operator is applied to the value of ev
 
 ```
 instance_trace_count + 2
-``` 
+```
 
-or 
+or
 
 ```
 2 + instance_trace_count
-``` 
+```
 
 results in
 
@@ -120,15 +120,15 @@ instance_trace_count{region="us-east",az="az-3"} 22 // 20 + 2
 instance_trace_count{region="asia-north",az="az-1"} 35 // 33 + 2
 ```
 
-Between two sample families, a binary operator is applied to each sample in the sample family on the left and 
+Between two sample families, a binary operator is applied to each sample in the sample family on the left and
 its matching sample in the sample family on the right. A new sample family with empty name will be generated.
 Only the matched tags will be reserved. Samples with no matching samples in the sample family on the right will not be found in the result.
 
-Another sample family `instance_trace_analysis_error_count` is 
+Another sample family `instance_trace_analysis_error_count` is
 
 ```
 instance_trace_analysis_error_count{region="us-west",az="az-1"} 20
-instance_trace_analysis_error_count{region="asia-north",az="az-1"} 11 
+instance_trace_analysis_error_count{region="asia-north",az="az-1"} 11
 ```
 
 Example expression:
@@ -137,7 +137,7 @@ Example expression:
 instance_trace_analysis_error_count / instance_trace_count
 ```
 
-This returns a resulting sample family containing the error rate of trace analysis. Samples with region us-west and az az-3 
+This returns a resulting sample family containing the error rate of trace analysis. Samples with region us-west and az az-3
 have no match and will not show up in the result:
 
 ```
@@ -154,17 +154,18 @@ resulting in a new sample family having fewer samples (sometimes having just a s
  - min (select minimum over dimensions)
  - max (select maximum over dimensions)
  - avg (calculate the average over dimensions)
- 
-These operations can be used to aggregate overall label dimensions or preserve distinct dimensions by inputting `by` parameter. 
+ - count (calculate the count over dimensions, the last tag will be counted)
+
+These operations can be used to aggregate overall label dimensions or preserve distinct dimensions by inputting `by` parameter( the keyword `by` could be omitted)
 
 ```
-<aggr-op>(by: <tag1, tag2, ...>)
+<aggr-op>(by=[<tag1>, <tag2>, ...])
 ```
 
 Example expression:
 
 ```
-instance_trace_count.sum(by: ['az'])
+instance_trace_count.sum(by=['az'])
 ```
 
 will output the following result:
@@ -173,6 +174,14 @@ will output the following result:
 instance_trace_count{az="az-1"} 133 // 100 + 33
 instance_trace_count{az="az-3"} 20
 ```
+
+___
+**Note, aggregation operations affect the samples from one bulk only. If the metrics are reported parallel from multiple instances/nodes
+through different SampleFamily, this aggregation would NOT work.**
+
+In the best practice for this scenario, build the metric with labels that represent each instance/node. Then use the 
+[AggregateLabels Operation in MQE](../api/metrics-query-expression.md#aggregatelabels-operation) to aggregate the metrics.
+___
 
 ### Function
 
@@ -202,27 +211,32 @@ Examples:
 `tag({allTags -> })`: Updates tags of samples. User can add, drop, rename and update tags.
 
 #### histogram
-`histogram(le: '<the tag name of le>')`: Transforms less-based histogram buckets to meter system histogram buckets. 
-`le` parameter represents the tag name of the bucket. 
+`histogram(le: '<the tag name of le>')`: Transforms less-based histogram buckets to meter system histogram buckets.
+`le` parameter represents the tag name of the bucket.
 
 #### histogram_percentile
-`histogram_percentile([<p scalar>])`. Represents the meter-system to calculate the p-percentile (0 ≤ p ≤ 100) from the buckets. 
+`histogram_percentile([<p scalar>])`: Represents the meter-system to calculate the p-percentile (0 ≤ p ≤ 100) from the buckets.
 
 #### time
 `time()`: Returns the number of seconds since January 1, 1970 UTC.
 
+#### foreach
+`forEach([string_array], Closure<Void> each)`: Iterates all samples according to the first array argument, and provide two parameters in the second closure argument:
+1. `element`: element in the array.
+2. `tags`: tags in each sample.
 
 ## Down Sampling Operation
-MAL should instruct meter-system on how to downsample for metrics. It doesn't only refer to aggregate raw samples to 
-`minute` level, but also expresses data from `minute` in higher levels, such as `hour` and `day`. 
+MAL should instruct meter-system on how to downsample for metrics. It doesn't only refer to aggregate raw samples to
+`minute` level, but also expresses data from `minute` in higher levels, such as `hour` and `day`.
 
 Down sampling function is called `downsampling` in MAL, and it accepts the following types:
 
  - AVG
  - SUM
  - LATEST
- - MIN (TODO)
- - MAX (TODO)
+ - SUM_PER_MIN
+ - MIN
+ - MAX
  - MEAN (TODO)
  - COUNT (TODO)
 
@@ -239,13 +253,56 @@ last_server_state_sync_time_in_seconds.tagEqual('production', 'catalog').downsam
 They extract level relevant labels from metric labels, then informs the meter-system the level and [layer](../../../oap-server/server-core/src/main/java/org/apache/skywalking/oap/server/core/analysis/Layer.java) to which this metric belongs.
 
  - `service([svc_label1, svc_label2...], Layer)` extracts service level labels from the array argument, extracts layer from `Layer` argument.
- - `instance([svc_label1, svc_label2...], [ins_label1, ins_label2...], Layer)` extracts service level labels from the first array argument, 
-                                                                        extracts instance level labels from the second array argument, extracts layer from `Layer` argument.
- - `endpoint([svc_label1, svc_label2...], [ep_label1, ep_label2...])` extracts service level labels from the first array argument, 
+ - `instance([svc_label1, svc_label2...], [ins_label1, ins_label2...], Layer, Closure<Map<String, String>> propertiesExtractor)` extracts service level labels from the first array argument,
+                                                                        extracts instance level labels from the second array argument, extracts layer from `Layer` argument, `propertiesExtractor` is an optional closure that extracts instance properties from `tags`, e.g. `{ tags -> ['pod': tags.pod, 'namespace': tags.namespace] }`.
+ - `endpoint([svc_label1, svc_label2...], [ep_label1, ep_label2...])` extracts service level labels from the first array argument,
                                                                       extracts endpoint level labels from the second array argument, extracts layer from `Layer` argument.
- - `serviceRelation(DetectPoint, [source_svc_label1...], [dest_svc_label1...], Layer)` DetectPoint including `DetectPoint.CLIENT` and `DetectPoint.SERVER`, 
+ - `process([svc_label1, svc_label2...], [ins_label1, ins_label2...], [ps_label1, ps_label2...], layer_lable)` extracts service level labels from the first array argument,
+                                                                      extracts instance level labels from the second array argument, extracts process level labels from the third array argument, extracts layer label from fourse argument.
+ - `serviceRelation(DetectPoint, [source_svc_label1...], [dest_svc_label1...], Layer)` DetectPoint including `DetectPoint.CLIENT` and `DetectPoint.SERVER`,
    extracts `sourceService` labels from the first array argument, extracts `destService` labels from the second array argument, extracts layer from `Layer` argument.
-   
+ - `processRelation(detect_point_label, [service_label1...], [instance_label1...], source_process_id_label, dest_process_id_label, component_label)` extracts `DetectPoint` labels from first argument, the label value should be `client` or `server`.
+   extracts `Service` labels from the first array argument, extracts `Instance` labels from the second array argument, extracts `ProcessID` labels from the fourth and fifth arguments of the source and destination.
+
+## Configuration file
+
+The OAP can load the configuration at bootstrap. If the new configuration is not well-formed, the OAP fails to start up. The files
+are located at `$CLASSPATH/otel-rules`, `$CLASSPATH/meter-analyzer-config`, `$CLASSPATH/envoy-metrics-rules` and `$CLASSPATH/zabbix-rules`.
+
+The file is written in YAML format, defined by the scheme described below. Brackets indicate that a parameter is optional.
+
+A full example can be found [here](../../../oap-server/server-starter/src/main/resources/otel-rules/oap.yaml)
+
+Generic placeholders are defined as follows:
+
+* `<string>`: A regular string.
+* `<closure>`: A closure with custom logic.
+
+```yaml
+# initExp is the expression that initializes the current configuration file
+initExp: <string>
+# filter the metrics, only those metrics that satisfy this condition will be passed into the `metricsRules` below.
+filter: <closure> # example: '{ tags -> tags.job_name == "vm-monitoring" }'
+# expPrefix is executed before the metrics executes other functions.
+expPrefix: <string>
+# expSuffix is appended to all expression in this file.
+expSuffix: <string>
+# insert metricPrefix into metric name:  <metricPrefix>_<raw_metric_name>
+metricPrefix: <string>
+# Metrics rule allow you to recompute queries.
+metricsRules:
+   [ - <metric_rules> ]
+```
+
+### <metric_rules>
+
+```yaml
+# The name of rule, which combinates with a prefix 'meter_' as the index/table name in storage.
+name: <string>
+# MAL expression.
+exp: <string>
+```
+
 ## More Examples
 
-Please refer to [OAP Self-Observability](../../../oap-server/server-starter/src/main/resources/fetcher-prom-rules/self.yaml)
+Please refer to [OAP Self-Observability](../../../oap-server/server-starter/src/main/resources/otel-rules/oap.yaml).

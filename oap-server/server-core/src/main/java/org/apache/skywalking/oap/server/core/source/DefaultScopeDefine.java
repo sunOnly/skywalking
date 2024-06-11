@@ -102,6 +102,40 @@ public class DefaultScopeDefine {
     public static final int EBPF_PROFILING_DATA = 48;
     public static final int SERVICE_LABEL = 49;
     public static final int TAG_AUTOCOMPLETE = 50;
+    public static final int ZIPKIN_SERVICE = 51;
+    public static final int ZIPKIN_SERVICE_SPAN = 52;
+    public static final int ZIPKIN_SERVICE_RELATION = 53;
+    public static final int PROCESS_RELATION = 54;
+    public static final int CACHE_ACCESS = 55;
+    public static final int CACHE_SLOW_ACCESS = 56;
+
+    public static final int TCP_SERVICE = 57;
+    public static final int TCP_SERVICE_INSTANCE = 58;
+    public static final int TCP_SERVICE_RELATION = 59;
+    public static final int TCP_SERVICE_INSTANCE_RELATION = 60;
+    public static final int TCP_SERVICE_INSTANCE_UPDATE = 61;
+    public static final int SAMPLED_SLOW_TRACE = 62;
+
+    public static final int MESSAGE_QUEUE_ACCESS = 63;
+    public static final int MESSAGE_QUEUE_ENDPOINT_ACCESS = 64;
+
+    public static final int SPAN_ATTACHED_EVENT = 65;
+    public static final int SAMPLED_STATUS_4XX_TRACE = 66;
+    public static final int SAMPLED_STATUS_5XX_TRACE = 67;
+
+    public static final int CONTINUOUS_PROFILING_POLICY = 68;
+
+    public static final int UI_MENU = 69;
+
+    public static final int SERVICE_HIERARCHY_RELATION = 70;
+    public static final int INSTANCE_HIERARCHY_RELATION = 71;
+
+    public static final int K8S_SERVICE = 72;
+    public static final int K8S_SERVICE_INSTANCE = 73;
+    public static final int K8S_SERVICE_RELATION = 74;
+    public static final int K8S_SERVICE_INSTANCE_RELATION = 75;
+    public static final int K8S_ENDPOINT = 76;
+    public static final int K8S_ENDPOINT_REALATION = 77;
 
     /**
      * Catalog of scope, the metrics processor could use this to group all generated metrics by oal rt.
@@ -113,6 +147,7 @@ public class DefaultScopeDefine {
     public static final String SERVICE_INSTANCE_RELATION_CATALOG_NAME = "SERVICE_INSTANCE_RELATION";
     public static final String ENDPOINT_RELATION_CATALOG_NAME = "ENDPOINT_RELATION";
     public static final String PROCESS_CATALOG_NAME = "PROCESS";
+    public static final String PROCESS_RELATION_CATALOG_NAME = "PROCESS_RELATION";
 
     private static final Map<Integer, Boolean> SERVICE_CATALOG = new HashMap<>();
     private static final Map<Integer, Boolean> SERVICE_INSTANCE_CATALOG = new HashMap<>();
@@ -121,6 +156,7 @@ public class DefaultScopeDefine {
     private static final Map<Integer, Boolean> SERVICE_INSTANCE_RELATION_CATALOG = new HashMap<>();
     private static final Map<Integer, Boolean> ENDPOINT_RELATION_CATALOG = new HashMap<>();
     private static final Map<Integer, Boolean> PROCESS_CATALOG = new HashMap<>();
+    private static final Map<Integer, Boolean> PROCESS_RELATION_CATALOG = new HashMap<>();
 
     @Setter
     private static boolean ACTIVE_EXTRA_MODEL_COLUMNS = false;
@@ -153,7 +189,7 @@ public class DefaultScopeDefine {
      * @param declaration   includes the definition.
      * @param originalClass represents the class having the {@link ScopeDeclaration} annotation
      */
-    private static final void addNewScope(ScopeDeclaration declaration, Class originalClass) {
+    private static void addNewScope(ScopeDeclaration declaration, Class originalClass) {
         int id = declaration.id();
         if (ID_2_NAME.containsKey(id)) {
             throw new UnexpectedException(
@@ -181,7 +217,7 @@ public class DefaultScopeDefine {
         if (virtualColumn != null) {
             scopeDefaultColumns.add(
                 new ScopeDefaultColumn(virtualColumn.fieldName(), virtualColumn.columnName(), virtualColumn
-                    .type(), virtualColumn.isID(), virtualColumn.length()));
+                    .type(), virtualColumn.isID(), virtualColumn.length(), false));
         }
         Field[] scopeClassField = originalClass.getDeclaredFields();
         if (scopeClassField != null) {
@@ -193,7 +229,7 @@ public class DefaultScopeDefine {
                         scopeDefaultColumns.add(
                             new ScopeDefaultColumn(
                                 field.getName(), definedByField.columnName(), field.getType(), false,
-                                definedByField.length()
+                                definedByField.length(), definedByField.groupByCondInTopN()
                             ));
                     }
                 }
@@ -224,6 +260,9 @@ public class DefaultScopeDefine {
                 break;
             case PROCESS_CATALOG_NAME:
                 PROCESS_CATALOG.put(id, Boolean.TRUE);
+                break;
+            case PROCESS_RELATION_CATALOG_NAME:
+                PROCESS_RELATION_CATALOG.put(id, Boolean.TRUE);
                 break;
         }
     }
@@ -336,6 +375,16 @@ public class DefaultScopeDefine {
     }
 
     /**
+     * Check whether the given scope ID belongs process relation catalog
+     *
+     * @param scopeId represents an existing scope id.
+     * @return true is current scope set {@link ScopeDeclaration#catalog()} == {@link #PROCESS_RELATION_CATALOG_NAME}
+     */
+    public static boolean inProcessRelationCatalog(int scopeId) {
+        return PROCESS_RELATION_CATALOG.containsKey(scopeId);
+    }
+
+    /**
      * Get the catalog string name of the given scope
      *
      * @param scope id of the source scope.
@@ -362,6 +411,9 @@ public class DefaultScopeDefine {
         }
         if (inProcessCatalog(scope)) {
             return PROCESS_CATALOG_NAME;
+        }
+        if (inProcessRelationCatalog(scope)) {
+            return PROCESS_RELATION_CATALOG_NAME;
         }
         return "ALL";
     }

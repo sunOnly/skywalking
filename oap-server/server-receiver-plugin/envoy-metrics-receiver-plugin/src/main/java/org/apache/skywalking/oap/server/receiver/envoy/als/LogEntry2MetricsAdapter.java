@@ -30,23 +30,20 @@ import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.apache.skywalking.apm.network.common.v3.DetectPoint;
+import org.apache.skywalking.apm.network.common.v3.KeyStringValuePair;
+import org.apache.skywalking.apm.network.servicemesh.v3.HTTPServiceMeshMetric;
 import org.apache.skywalking.apm.network.servicemesh.v3.Protocol;
-import org.apache.skywalking.apm.network.servicemesh.v3.ServiceMeshMetric;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
+import static org.apache.skywalking.oap.server.core.Const.TLS_MODE.M_TLS;
+import static org.apache.skywalking.oap.server.core.Const.TLS_MODE.NON_TLS;
+import static org.apache.skywalking.oap.server.core.Const.TLS_MODE.TLS;
 
 /**
- * Adapt {@link HTTPAccessLogEntry} objects to {@link ServiceMeshMetric} builders.
+ * Adapt {@link HTTPAccessLogEntry} objects to {@link HTTPServiceMeshMetric} builders.
  */
 @RequiredArgsConstructor
 public class LogEntry2MetricsAdapter {
-
-    public static final String NON_TLS = "NONE";
-
-    public static final String M_TLS = "mTLS";
-
-    public static final String TLS = "TLS";
-
     /**
      * The access log entry that is to be adapted into metrics builders.
      */
@@ -57,11 +54,11 @@ public class LogEntry2MetricsAdapter {
     protected final ServiceMetaInfo targetService;
 
     /**
-     * Adapt the {@code entry} into a downstream metrics {@link ServiceMeshMetric.Builder}.
+     * Adapt the {@code entry} into a downstream metrics {@link HTTPServiceMeshMetric.Builder}.
      *
-     * @return the {@link ServiceMeshMetric.Builder} adapted from the given entry.
+     * @return the {@link HTTPServiceMeshMetric.Builder} adapted from the given entry.
      */
-    public ServiceMeshMetric.Builder adaptToDownstreamMetrics() {
+    public HTTPServiceMeshMetric.Builder adaptToDownstreamMetrics() {
         final AccessLogCommon properties = entry.getCommonProperties();
         final long startTime = formatAsLong(properties.getStartTime());
         final long duration = formatAsLong(properties.getTimeToLastDownstreamTxByte());
@@ -74,24 +71,30 @@ public class LogEntry2MetricsAdapter {
     }
 
     /**
-     * Adapt the {@code entry} into a upstream metrics {@link ServiceMeshMetric.Builder}.
+     * Adapt the {@code entry} into an upstream metrics {@link HTTPServiceMeshMetric.Builder}.
      *
-     * @return the {@link ServiceMeshMetric.Builder} adapted from the given entry.
+     * @return the {@link HTTPServiceMeshMetric.Builder} adapted from the given entry.
      */
-    public ServiceMeshMetric.Builder adaptToUpstreamMetrics() {
+    public HTTPServiceMeshMetric.Builder adaptToUpstreamMetrics() {
         final AccessLogCommon properties = entry.getCommonProperties();
         final long startTime = formatAsLong(properties.getStartTime());
         final long outboundStartTime = startTime + formatAsLong(properties.getTimeToFirstUpstreamTxByte());
         final long outboundEndTime = startTime + formatAsLong(properties.getTimeToLastUpstreamRxByte());
 
-        return adaptCommonPart()
+        final HTTPServiceMeshMetric.Builder builder = adaptCommonPart();
+        // For client side call, status needs to be overridden because 4xx http status codes
+        // are considered as errors too.
+        final boolean status = builder.getResponseCode() < 400;
+
+        return builder
             .setStartTime(outboundStartTime)
             .setEndTime(outboundEndTime)
             .setLatency((int) Math.max(1L, outboundEndTime - outboundStartTime))
+            .setStatus(status)
             .setDetectPoint(DetectPoint.client);
     }
 
-    public ServiceMeshMetric.Builder adaptCommonPart() {
+    public HTTPServiceMeshMetric.Builder adaptCommonPart() {
         final AccessLogCommon properties = entry.getCommonProperties();
         final String endpoint = endpoint();
         int responseCode = entry.getResponse().getResponseCode().getValue();
@@ -105,16 +108,17 @@ public class LogEntry2MetricsAdapter {
             properties.getTimeToFirstDownstreamTxByte().getNanos()
                 - properties.getTimeToFirstUpstreamRxByte().getNanos();
 
-        final ServiceMeshMetric.Builder builder =
-            ServiceMeshMetric.newBuilder()
-                             .setEndpoint(endpoint)
-                             .setResponseCode(Math.toIntExact(responseCode))
-                             .setStatus(status)
-                             .setProtocol(protocol)
-                             .setTlsMode(tlsMode)
-                             .setInternalErrorCode(internalErrorCode)
-                             .setInternalRequestLatencyNanos(internalRequestLatencyNanos)
-                             .setInternalResponseLatencyNanos(internalResponseLatencyNanos);
+        final HTTPServiceMeshMetric.Builder builder =
+            HTTPServiceMeshMetric
+                .newBuilder()
+                .setEndpoint(endpoint)
+                .setResponseCode(Math.toIntExact(responseCode))
+                .setStatus(status)
+                .setProtocol(protocol)
+                .setTlsMode(tlsMode)
+                .setInternalErrorCode(internalErrorCode)
+                .setInternalRequestLatencyNanos(internalRequestLatencyNanos)
+                .setInternalResponseLatencyNanos(internalResponseLatencyNanos);
 
         Optional.ofNullable(sourceService)
                 .map(ServiceMetaInfo::getServiceName)
@@ -128,6 +132,26 @@ public class LogEntry2MetricsAdapter {
         Optional.ofNullable(targetService)
                 .map(ServiceMetaInfo::getServiceInstanceName)
                 .ifPresent(builder::setDestServiceInstance);
+
+        Optional
+            .ofNullable(sourceService)
+            .map(ServiceMetaInfo::getTags)
+            .ifPresent(tags -> {
+                tags.forEach(p -> {
+                    builder.addSourceInstanceProperties(
+                        KeyStringValuePair.newBuilder().setKey(p.getKey()).setValue(p.getValue()));
+                });
+            });
+
+        Optional
+            .ofNullable(targetService)
+            .map(ServiceMetaInfo::getTags)
+            .ifPresent(tags -> {
+                tags.forEach(p -> {
+                    builder.addDestInstanceProperties(
+                        KeyStringValuePair.newBuilder().setKey(p.getKey()).setValue(p.getValue()));
+                });
+            });
 
         return builder;
     }

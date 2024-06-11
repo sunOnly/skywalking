@@ -23,10 +23,10 @@ import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.cache.PathChildrenCache;
 import org.apache.skywalking.oap.server.configuration.api.ConfigTable;
 import org.apache.skywalking.oap.server.configuration.zookeeper.ZookeeperServerSettings;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.powermock.reflect.Whitebox;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
@@ -35,7 +35,7 @@ public class ZookeeperConfigWatcherRegisterTestCase {
     @Test
     public void TestCase() throws Exception {
         final String namespace = "/default";
-        final String key = "receiver-trace.default.slowDBAccessThreshold";
+        final String key = "agent-analyzer.default.slowDBAccessThreshold";
         final String value = "default:100,mongodb:50";
 
         final ZookeeperServerSettings mockSettings = mock(ZookeeperServerSettings.class);

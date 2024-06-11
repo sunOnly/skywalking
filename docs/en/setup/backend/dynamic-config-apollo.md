@@ -10,7 +10,6 @@ configuration:
     apolloCluster: ${SW_CONFIG_APOLLO_CLUSTER:default}
     apolloEnv: ${SW_CONFIG_APOLLO_ENV:""}
     appId: ${SW_CONFIG_APOLLO_APP_ID:skywalking}
-    period: ${SW_CONFIG_APOLLO_PERIOD:60}
 ```
 
 ## Config Storage
@@ -19,7 +18,7 @@ Single configs in Apollo are key/value pairs:
 
 | Key | Value |
 |-----|-----|
-| configKey | configVaule |
+| configKey | configValue |
 
 e.g. The config is:
 ```

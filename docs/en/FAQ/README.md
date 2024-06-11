@@ -2,7 +2,8 @@
 These are known and frequently asked questions about SkyWalking. We welcome you to contribute here.
 
 ## Design
-* [Why doesn't SkyWalking involve MQ in its architecture?](why_mq_not_involved.md)
+* [Why does SkyWalking use RPC(gRPC and RESTful) rather than MQ as transport layer by default?](why_mq_not_involved.md)
+* [Why is Clickhouse or Loki or xxx not supported as a storage option?](why-clickhouse-not-supported.md)
 
 ## Compiling
 * [Protoc plugin fails in maven build](Protoc-Plugin-Fails-When-Build.md)
@@ -11,6 +12,7 @@ These are known and frequently asked questions about SkyWalking. We welcome you 
 * [Compiling issues on Mac's M1 chip](How-to-build-with-mac-m1.md)
 
 ## Runtime
+* [New ElasticSearch storage option explanation in 9.2.0](New-ElasticSearch-storage-option-explanation-in-9.2.0.md)
 * [Version 9.x+ upgrade](v9-version-upgrade.md)
 * [Elasticsearch exception `type=version_conflict_engine_exception` since 8.7.0](es-version-conflict.md)
 * [Version 8.x+ upgrade](v8-version-upgrade.md)

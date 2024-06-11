@@ -18,8 +18,6 @@
 
 package org.apache.skywalking.oap.server.tool.profile.core;
 
-import java.io.IOException;
-import java.util.Collections;
 import org.apache.skywalking.oap.server.core.CoreModule;
 import org.apache.skywalking.oap.server.core.CoreModuleConfig;
 import org.apache.skywalking.oap.server.core.CoreModuleProvider;
@@ -36,6 +34,7 @@ import org.apache.skywalking.oap.server.core.config.group.EndpointNameGrouping;
 import org.apache.skywalking.oap.server.core.management.ui.template.UITemplateManagementService;
 import org.apache.skywalking.oap.server.core.oal.rt.OALEngineLoaderService;
 import org.apache.skywalking.oap.server.core.profiling.trace.ProfileTaskMutationService;
+import org.apache.skywalking.oap.server.core.profiling.trace.ProfileTaskQueryService;
 import org.apache.skywalking.oap.server.core.query.AggregationQueryService;
 import org.apache.skywalking.oap.server.core.query.AlarmQueryService;
 import org.apache.skywalking.oap.server.core.query.BrowserLogQueryService;
@@ -44,7 +43,6 @@ import org.apache.skywalking.oap.server.core.query.LogQueryService;
 import org.apache.skywalking.oap.server.core.query.MetadataQueryService;
 import org.apache.skywalking.oap.server.core.query.MetricsMetadataQueryService;
 import org.apache.skywalking.oap.server.core.query.MetricsQueryService;
-import org.apache.skywalking.oap.server.core.profiling.trace.ProfileTaskQueryService;
 import org.apache.skywalking.oap.server.core.query.TopNRecordsQueryService;
 import org.apache.skywalking.oap.server.core.query.TopologyQueryService;
 import org.apache.skywalking.oap.server.core.query.TraceQueryService;
@@ -61,7 +59,6 @@ import org.apache.skywalking.oap.server.core.storage.model.ModelManipulator;
 import org.apache.skywalking.oap.server.core.storage.model.StorageModels;
 import org.apache.skywalking.oap.server.core.worker.IWorkerInstanceGetter;
 import org.apache.skywalking.oap.server.core.worker.IWorkerInstanceSetter;
-import org.apache.skywalking.oap.server.library.module.ModuleConfig;
 import org.apache.skywalking.oap.server.library.module.ModuleDefine;
 import org.apache.skywalking.oap.server.library.module.ModuleStartException;
 import org.apache.skywalking.oap.server.library.module.ServiceNotProvidedException;
@@ -73,6 +70,9 @@ import org.apache.skywalking.oap.server.tool.profile.core.mock.MockRemoteClientM
 import org.apache.skywalking.oap.server.tool.profile.core.mock.MockSourceReceiver;
 import org.apache.skywalking.oap.server.tool.profile.core.mock.MockStreamAnnotationListener;
 import org.apache.skywalking.oap.server.tool.profile.core.mock.MockWorkerInstancesService;
+
+import java.io.IOException;
+import java.util.Collections;
 
 public class MockCoreModuleProvider extends CoreModuleProvider {
 
@@ -95,8 +95,8 @@ public class MockCoreModuleProvider extends CoreModuleProvider {
     }
 
     @Override
-    public ModuleConfig createConfigBeanIfAbsent() {
-        return new MockCoreModuleConfig();
+    public ConfigCreator newConfigCreator() {
+        return null;
     }
 
     @Override
@@ -120,7 +120,7 @@ public class MockCoreModuleProvider extends CoreModuleProvider {
         this.registerServiceImplementation(MeterSystem.class, new MeterSystem(getManager()));
 
         CoreModuleConfig moduleConfig = new CoreModuleConfig();
-        this.registerServiceImplementation(ConfigService.class, new ConfigService(moduleConfig));
+        this.registerServiceImplementation(ConfigService.class, new ConfigService(moduleConfig, this));
         this.registerServiceImplementation(
                 DownSamplingConfigService.class, new DownSamplingConfigService(Collections.emptyList()));
 
@@ -144,13 +144,13 @@ public class MockCoreModuleProvider extends CoreModuleProvider {
         this.registerServiceImplementation(
                 NetworkAddressAliasCache.class, new NetworkAddressAliasCache(moduleConfig));
 
-        this.registerServiceImplementation(TopologyQueryService.class, new TopologyQueryService(getManager()));
+        this.registerServiceImplementation(TopologyQueryService.class, new TopologyQueryService(getManager(), storageModels));
         this.registerServiceImplementation(MetricsMetadataQueryService.class, new MetricsMetadataQueryService());
         this.registerServiceImplementation(MetricsQueryService.class, new MetricsQueryService(getManager()));
         this.registerServiceImplementation(TraceQueryService.class, new TraceQueryService(getManager()));
         this.registerServiceImplementation(BrowserLogQueryService.class, new BrowserLogQueryService(getManager()));
         this.registerServiceImplementation(LogQueryService.class, new LogQueryService(getManager()));
-        this.registerServiceImplementation(MetadataQueryService.class, new MetadataQueryService(getManager()));
+        this.registerServiceImplementation(MetadataQueryService.class, new MetadataQueryService(getManager(), moduleConfig));
         this.registerServiceImplementation(AggregationQueryService.class, new AggregationQueryService(getManager()));
         this.registerServiceImplementation(AlarmQueryService.class, new AlarmQueryService(getManager()));
         this.registerServiceImplementation(TopNRecordsQueryService.class, new TopNRecordsQueryService(getManager()));

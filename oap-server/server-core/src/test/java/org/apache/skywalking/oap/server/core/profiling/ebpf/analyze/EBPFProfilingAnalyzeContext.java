@@ -20,18 +20,20 @@ package org.apache.skywalking.oap.server.core.profiling.ebpf.analyze;
 
 import lombok.Data;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.skywalking.apm.network.ebpf.profiling.v3.EBPFOnCPUProfiling;
 import org.apache.skywalking.apm.network.ebpf.profiling.v3.EBPFProfilingStackMetadata;
 import org.apache.skywalking.apm.network.ebpf.profiling.v3.EBPFProfilingStackType;
 import org.apache.skywalking.oap.server.core.profiling.ebpf.storage.EBPFProfilingDataRecord;
+import org.apache.skywalking.oap.server.core.profiling.ebpf.storage.EBPFProfilingTargetType;
 import org.apache.skywalking.oap.server.core.query.type.EBPFProfilingAnalyzation;
+import org.apache.skywalking.oap.server.core.query.type.EBPFProfilingAnalyzeAggregateType;
 import org.apache.skywalking.oap.server.core.query.type.EBPFProfilingAnalyzeTimeRange;
 import org.apache.skywalking.oap.server.core.query.type.EBPFProfilingStackElement;
 import org.apache.skywalking.oap.server.core.query.type.EBPFProfilingTree;
 import org.apache.skywalking.oap.server.core.storage.profiling.ebpf.IEBPFProfilingDataDAO;
 import org.apache.skywalking.oap.server.library.util.CollectionUtils;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -55,12 +57,12 @@ public class EBPFProfilingAnalyzeContext {
      */
     public void analyzeAssert() throws IOException {
         final Analyzer analyzer = new Analyzer();
-        final EBPFProfilingAnalyzation analyze = analyzer.analyze(null, buildTimeRanges());
-        Assert.assertNotNull(analyze);
-        Assert.assertNull(analyze.getTip());
-        Assert.assertNotNull(analyze.getTrees());
+        final EBPFProfilingAnalyzation analyze = analyzer.analyze(null, buildTimeRanges(), EBPFProfilingAnalyzeAggregateType.COUNT);
+        Assertions.assertNotNull(analyze);
+        Assertions.assertNull(analyze.getTip());
+        Assertions.assertNotNull(analyze.getTrees());
         for (int i = 0; i < excepted.size(); i++) {
-            Assert.assertTrue(analyze.getTrees().size() > i);
+            Assertions.assertTrue(analyze.getTrees().size() > i);
             final Except except = excepted.get(i);
             final EBPFProfilingTree actualTree = analyze.getTrees().get(i);
             validateTree(except, actualTree, 0);
@@ -73,7 +75,7 @@ public class EBPFProfilingAnalyzeContext {
         boolean found = false;
         int dataId = 0;
         for (EBPFProfilingStackElement element : actual.getElements()) {
-            Assert.assertNotNull(element);
+            Assertions.assertNotNull(element);
             if (element.getParentId() == parentId
                     && Objects.equals(element.getSymbol(), symbol)
                     && Objects.equals(element.getDumpCount(), count)) {
@@ -81,7 +83,7 @@ public class EBPFProfilingAnalyzeContext {
                 dataId = element.getId();
             }
         }
-        Assert.assertTrue("could not found:" + except.getData(), found);
+        Assertions.assertTrue(found, "could not found:" + except.getData());
 
         if (CollectionUtils.isNotEmpty(except.getChild())) {
             for (Except e : except.getChild()) {
@@ -109,7 +111,7 @@ public class EBPFProfilingAnalyzeContext {
 
     private class Analyzer extends EBPFProfilingAnalyzer implements IEBPFProfilingDataDAO {
         public Analyzer() {
-            super(null, 100, 100, 5);
+            super(null, 100, 5);
         }
 
         @Override
@@ -126,8 +128,8 @@ public class EBPFProfilingAnalyzeContext {
                 }
                 final String symbolData = symbols.get((int) beginTime);
                 final EBPFProfilingDataRecord record = new EBPFProfilingDataRecord();
-                record.setStackDumpCount(Integer.parseInt(StringUtils.substringBefore(symbolData, ":")));
-                final ByteArrayOutputStream output = new ByteArrayOutputStream();
+                record.setTargetType(EBPFProfilingTargetType.ON_CPU.value());
+                final int count = Integer.parseInt(StringUtils.substringBefore(symbolData, ":"));
                 final List<String> symbols = Arrays.asList(StringUtils.substringAfter(symbolData, ":").split("-"));
                 // revert symbol to the real case
                 Collections.reverse(symbols);
@@ -136,8 +138,7 @@ public class EBPFProfilingAnalyzeContext {
                         .setStackId(1)
                         .addAllStackSymbols(symbols)
                         .build();
-                metadata.writeDelimitedTo(output);
-                record.setStacksBinary(output.toByteArray());
+                record.setDataBinary(EBPFOnCPUProfiling.newBuilder().setDumpCount(count).addStacks(metadata).build().toByteArray());
                 records.add(record);
             }
             return records;
